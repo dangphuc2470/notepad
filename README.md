@@ -46,13 +46,9 @@ A modern, fast, and authentic Windows 11 Notepad recreation crafted for macOS. B
   - Configurable debounced background auto-save.
   - Instant auto-save flush on window blur.
   - Native AppKit sequential `NSAlert` modal save protection when closing unsaved tabs.
-- **Native File Associations & Finder Integration**:
-  - Support for `.txt`, `.md`, `.log`, `.json`, `.csv`, `.toml`, `.yaml`, `.py`, `.rs`, `.ts`, `.cpp`, `.html`, `.css`, and more.
-  - Double-click files in Finder or right-click **Open With &rarr; Notepad** to open immediately without an empty "Untitled" flash.
 - **Accessibility & Reduce Motion**:
   - Full Reduce Motion toggle in Settings (`0ms` instant window and tab transitions, disabling blur filters).
 - **Dark and Light Modes**: Dynamic theme support syncing with macOS appearance or customizable in Settings.
-- **macOS 26 Settings Panel**: Clean grouped card settings for Font, Size, Theme, Auto Save, and Reduce Motion.
 
 ---
 
