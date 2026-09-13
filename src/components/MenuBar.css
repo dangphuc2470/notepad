@@ -28,9 +28,13 @@
     letter-spacing: -0.01em;
 }
 
-.menu-trigger:hover,
-.menu-trigger.active {
+.menu-trigger:hover {
     background: var(--bg-hover);
+}
+
+.menu-trigger.active,
+.menu-trigger.active:hover {
+    background: color-mix(in srgb, var(--accent-color) 12%, var(--bg-hover));
 }
 
 .menu-dropdown {
