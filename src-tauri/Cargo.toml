@@ -1,12 +1,12 @@
 [package]
-name = "notepadmac"
+name = "notepad"
 version = "1.1.1"
 description = "Windows 11 Notepad clone for macOS"
 authors = ["Arijit Deb"]
 edition = "2021"
 
 [lib]
-name = "notepadmac_lib"
+name = "notepad_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
