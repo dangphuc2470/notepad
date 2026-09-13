@@ -3,12 +3,12 @@
 A modern, fast, and authentic Windows 11 Notepad recreation crafted for macOS. Built with Tauri v2, Rust, and React, featuring native macOS window integration, Fluent Design aesthetics, multi-window tab workflows, and instant startup.
 
 <div align="center">
-  <img src="assets/screenshots/preview-hero.png" alt="Notepad for macOS Overview" width="800" />
+  <img src="assets/lightmode.png" alt="Notepad for macOS Overview" width="800" />
 </div>
 
 <p align="center">
-  <a href="https://github.com/dangphuc2470/notepad/releases/download/v1.1.0/Notepad_1.1.0_aarch64.dmg"><img src="https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3%2FM4)-blue?style=for-the-badge&logo=apple" alt="Download Apple Silicon" /></a>
-  <a href="https://github.com/dangphuc2470/notepad/releases/download/v1.1.0/Notepad_1.1.0_x64.dmg"><img src="https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple" alt="Download Intel" /></a>
+  <a href="https://github.com/dangphuc2470/notepad/releases/download/v1.1.1/Notepad_1.1.1_aarch64.dmg"><img src="https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3%2FM4)-blue?style=for-the-badge&logo=apple" alt="Download Apple Silicon" /></a>
+  <a href="https://github.com/dangphuc2470/notepad/releases/download/v1.1.1/Notepad_1.1.1_x64.dmg"><img src="https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple" alt="Download Intel" /></a>
 </p>
 
 <p align="center">
@@ -59,20 +59,17 @@ A modern, fast, and authentic Windows 11 Notepad recreation crafted for macOS. B
 ## Screenshots
 
 <div align="center">
-  <h3>Overview</h3>
-  <img src="assets/screenshots/preview-hero.png" alt="Notepad Overview" width="750" />
-  <br /><br />
   <h3>Light Mode</h3>
-  <img src="assets/screenshots/preview-light.png" alt="Notepad Light Mode" width="750" />
+  <img src="assets/lightmode.png" alt="Notepad Light Mode" width="750" />
   <br /><br />
   <h3>Menu Bar</h3>
-  <img src="assets/screenshots/preview-menu.png" alt="Notepad Menu Bar" width="750" />
+  <img src="assets/menu.png" alt="Notepad Menu Bar" width="750" />
   <br /><br />
   <h3>Dark Mode</h3>
-  <img src="assets/screenshots/preview-dark.png" alt="Notepad Dark Mode" width="750" />
+  <img src="assets/darkmode.png" alt="Notepad Dark Mode" width="750" />
   <br /><br />
   <h3>Settings Panel</h3>
-  <img src="assets/screenshots/preview-settings.png" alt="Notepad Settings" width="600" />
+  <img src="assets/setting.png" alt="Notepad Settings" width="750" />
 </div>
 
 ---

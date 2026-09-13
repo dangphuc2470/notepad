@@ -206,7 +206,7 @@ export const Settings: React.FC = () => {
                         <div className="settings-about-text">
                             <div className="settings-app-header">
                                 <span className="settings-app-name">Notepad</span>
-                                <span className="settings-app-version">v1.1.0</span>
+                                <span className="settings-app-version">v1.1.1</span>
                             </div>
                             <span className="settings-fork-desc">
                                 Forked from <a href="https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac" onClick={(e) => handleOpenLink(e, "https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac")} className="settings-fork-link">Arijit</a>
