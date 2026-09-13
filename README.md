@@ -1,11 +1,14 @@
-# NotepadMac
+# Notepad for macOS
 
-A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and TypeScript.
+A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and TypeScript. Fluent Windows 11 design meets macOS Sequoia Glassmorphism.
 
-[![Download for macOS (Apple Silicon)](https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3)-blue?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v1.0.4/NotepadMac_1.0.4_aarch64.dmg)
-[![Download for macOS (Intel)](https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v1.0.4/NotepadMac_1.0.4_x64.dmg)
+[![Download for macOS (Apple Silicon)](https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3%2FM4)-blue?style=for-the-badge&logo=apple)](https://github.com/dangphuc2470/notepad/releases/download/v1.1.0/Notepad_1.1.0_aarch64.dmg)
+[![Download for macOS (Intel)](https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple)](https://github.com/dangphuc2470/notepad/releases/download/v1.1.0/Notepad_1.1.0_x64.dmg)
 
-[Notice] Some apple silion laptop might face issue while first opeaning the app see Troubleshooting Section for fix, Hombrew is Kinda bit iffy, plz download using the above bottons, or from releases. Plz I need a maintainer 🥲
+> **Note**: After downloading, remove the macOS Gatekeeper quarantine flag in Terminal:
+> ```bash
+> xattr -cr /Applications/Notepad.app
+> ```
 
 ## Features
 
@@ -34,7 +37,7 @@ This template should help get you started developing with Tauri, React and Types
 ```bash
 brew tap Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac.git
 brew install notepadformac
-xattr -cr /Applications/NotepadMac.app
+xattr -cr /Applications/Notepad.app
 ```
 
 #### Install via Source

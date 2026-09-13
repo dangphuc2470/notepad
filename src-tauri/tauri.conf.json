@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "NotepadMac",
-  "version": "1.0.4",
-  "identifier": "com.arijitdeb.notepadmac",
+  "productName": "Notepad",
+  "version": "1.1.0",
+  "identifier": "com.phucdnh.notepad",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,11 +13,11 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "NotepadMac",
-        "width": 900,
-        "height": 650,
-        "minWidth": 400,
-        "minHeight": 300,
+        "title": "Notepad",
+        "width": 1000,
+        "height": 680,
+        "minWidth": 450,
+        "minHeight": 320,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
         "transparent": true,

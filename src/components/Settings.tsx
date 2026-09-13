@@ -204,18 +204,23 @@ export const Settings: React.FC = () => {
                     <div className="settings-about">
                         <img src="/logo.svg" alt="Notepad" className="settings-app-icon" />
                         <div className="settings-about-text">
-                            <span className="settings-app-name">NotepadMac</span>
-                            <span className="settings-app-version">Version 1.1.0</span>
+                            <div className="settings-app-header">
+                                <span className="settings-app-name">Notepad</span>
+                                <span className="settings-app-version">v1.1.0</span>
+                            </div>
+                            <span className="settings-fork-desc">
+                                Forked from <a href="https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac" onClick={(e) => handleOpenLink(e, "https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac")} className="settings-fork-link">Arijit</a>
+                            </span>
                         </div>
                     </div>
                     <a
-                        href="https://github.com/Arijit-gotsomecodes"
-                        onClick={(e) => handleOpenLink(e, 'https://github.com/Arijit-gotsomecodes')}
+                        href="https://github.com/dangphuc2470"
+                        onClick={(e) => handleOpenLink(e, "https://github.com/dangphuc2470")}
                         className="settings-credit"
-                        title="View author profile on GitHub"
+                        title="View profile on GitHub"
                     >
                         <IconGithub />
-                        <span>Made by Arijit</span>
+                        <span>Made by dangphuc2470</span>
                     </a>
                 </div>
             </div>
