@@ -15,7 +15,10 @@ const IconSave = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /></svg>
 );
 const IconSaveAs = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V11" /><path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /><path d="m18.4 12.6 3 3L15 22l-3.5.5.5-3.5z" /></svg>
+);
+const IconAutoSave = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V10" /><path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10" /><path d="M7 3v4a1 1 0 0 0 1 1h7" /><path d="M21 15a4 4 0 0 1-7 2.5" /><path d="M14 17.5V14h3.5" /></svg>
 );
 const IconX = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -149,7 +152,7 @@ export const MenuBar: React.FC = () => {
         { label: 'Open...', shortcut: '⌘O', icon: <IconFolderOpen />, action: onOpen },
         { label: 'Save', shortcut: '⌘S', icon: <IconSave />, action: onSave },
         { label: 'Save As...', shortcut: '⇧⌘S', icon: <IconSaveAs />, action: onSaveAs },
-        { label: 'Auto Save', icon: <IconSave />, toggle: true, checked: settingsStore.autoSave, action: () => { setOpenMenu(null); settingsStore.toggleAutoSave(); } },
+        { label: 'Auto Save', icon: <IconAutoSave />, toggle: true, checked: settingsStore.autoSave, action: () => { setOpenMenu(null); settingsStore.toggleAutoSave(); } },
         { label: '', divider: true },
         { label: 'Close Tab', shortcut: '⌘W', icon: <IconX />, action: () => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('request-close-tab')); } },
     ];
