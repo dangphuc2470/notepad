@@ -2,10 +2,9 @@ import { useEffect } from 'react';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from './useFileOperations';
+import { notepadInsertText, notepadIsEditorTarget, notepadRedo, notepadUndo } from '../editor/notepadEditor';
 
 export const useKeyboardShortcuts = () => {
-    const editorStore = useEditorStore();
-    const settingsStore = useSettingsStore();
     const { handleOpen, handleSave, handleSaveAs } = useFileOperations();
 
     useEffect(() => {
@@ -16,23 +15,15 @@ export const useKeyboardShortcuts = () => {
             if (!isMeta) {
                 if (e.key === 'F5') {
                     e.preventDefault();
-                    const tab = editorStore.getActiveTab();
-                    if (!tab) return;
                     const now = new Date();
                     const dateStr = `${now.toLocaleTimeString()} ${now.toLocaleDateString()}`;
-                    const textarea = document.querySelector('.editor-textarea') as HTMLTextAreaElement;
-                    if (textarea) {
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        const newContent = tab.content.substring(0, start) + dateStr + tab.content.substring(end);
-                        editorStore.pushUndo(tab.id, tab.content);
-                        editorStore.updateContent(tab.id, newContent);
-                        textarea.value = newContent;
-                        textarea.selectionStart = textarea.selectionEnd = start + dateStr.length;
-                    }
+                    notepadInsertText(dateStr);
                 }
                 return;
             }
+
+            const editorStore = useEditorStore.getState();
+            const settingsStore = useSettingsStore.getState();
 
             switch (e.key.toLowerCase()) {
                 case 't':
@@ -91,27 +82,35 @@ export const useKeyboardShortcuts = () => {
                     settingsStore.toggleFindReplace('replace');
                     break;
 
-                case 'z':
+                case 'z': {
+                    const el = document.activeElement;
+                    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+                        return;
+                    }
+                    if (notepadIsEditorTarget(el)) {
+                        return;
+                    }
                     e.preventDefault();
                     if (isShift) {
-                        // Cmd+Shift+Z = Redo
-                        const t = editorStore.getActiveTab();
-                        if (t) editorStore.redo(t.id);
+                        notepadRedo();
                     } else {
-                        // Cmd+Z = Undo
-                        const t = editorStore.getActiveTab();
-                        if (t) editorStore.undo(t.id);
+                        notepadUndo();
                     }
                     break;
+                }
 
-                case 'y':
-                    // Cmd+Y = Redo (alternative)
-                    e.preventDefault();
-                    {
-                        const t = editorStore.getActiveTab();
-                        if (t) editorStore.redo(t.id);
+                case 'y': {
+                    const el = document.activeElement;
+                    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+                        return;
                     }
+                    if (notepadIsEditorTarget(el)) {
+                        return;
+                    }
+                    e.preventDefault();
+                    notepadRedo();
                     break;
+                }
 
                 case '=':
                 case '+':
@@ -160,6 +159,7 @@ export const useKeyboardShortcuts = () => {
         const handleWheel = (e: WheelEvent) => {
             if (e.metaKey) {
                 e.preventDefault();
+                const settingsStore = useSettingsStore.getState();
                 if (e.deltaY < 0) {
                     settingsStore.zoomIn();
                 } else {

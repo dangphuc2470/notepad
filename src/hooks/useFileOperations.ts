@@ -5,6 +5,7 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 
 export async function saveAsTab(tabId?: string): Promise<boolean> {
     const editorStore = useEditorStore.getState();
+    editorStore.flushPendingContent();
     const tab = tabId ? editorStore.tabs.find(t => t.id === tabId) : editorStore.getActiveTab();
     if (!tab) return false;
 
@@ -37,6 +38,7 @@ export async function saveAsTab(tabId?: string): Promise<boolean> {
 
 export async function saveTab(tabId?: string): Promise<boolean> {
     const editorStore = useEditorStore.getState();
+    editorStore.flushPendingContent();
     const tab = tabId ? editorStore.tabs.find(t => t.id === tabId) : editorStore.getActiveTab();
     if (!tab) return false;
 

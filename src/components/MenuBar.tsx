@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from '../hooks/useFileOperations';
+import { notepadDeleteSelection, notepadExecClipboard, notepadInsertText, notepadRedo, notepadSelectAll, notepadUndo } from '../editor/notepadEditor';
 import './MenuBar.css';
 
 // Lucide Icons (inline SVG components)
@@ -91,8 +92,10 @@ interface MenuItem {
 export const MenuBar: React.FC = () => {
     const [openMenu, setOpenMenu] = useState<MenuId>(null);
     const menuBarRef = useRef<HTMLDivElement>(null);
-    const editorStore = useEditorStore();
-    const settingsStore = useSettingsStore();
+
+    const autoSave = useSettingsStore((s) => s.autoSave);
+    const wordWrap = useSettingsStore((s) => s.wordWrap);
+    const showStatusBar = useSettingsStore((s) => s.showStatusBar);
 
     const { handleOpen, handleSave, handleSaveAs } = useFileOperations();
 
@@ -107,7 +110,7 @@ export const MenuBar: React.FC = () => {
     }, []);
 
     const handleNewTab = () => {
-        editorStore.addTab();
+        useEditorStore.getState().addTab();
         setOpenMenu(null);
     };
 
@@ -128,58 +131,46 @@ export const MenuBar: React.FC = () => {
 
     const handleInsertDateTime = () => {
         setOpenMenu(null);
-        const tab = editorStore.getActiveTab();
-        if (!tab) return;
         const now = new Date();
         const dateStr = `${now.toLocaleTimeString()} ${now.toLocaleDateString()}`;
-        const textarea = document.querySelector('.editor-textarea') as HTMLTextAreaElement;
-        if (textarea) {
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const newContent = tab.content.substring(0, start) + dateStr + tab.content.substring(end);
-            editorStore.pushUndo(tab.id, tab.content);
-            editorStore.updateContent(tab.id, newContent);
-            textarea.value = newContent;
-            textarea.selectionStart = textarea.selectionEnd = start + dateStr.length;
-            textarea.focus();
-        }
+        notepadInsertText(dateStr);
     };
 
     const fileMenu: MenuItem[] = [
         { label: 'New Tab', shortcut: '⌘T', icon: <IconFilePlus />, action: handleNewTab },
-        { label: 'Reopen Closed Tab', shortcut: '⇧⌘T', icon: <IconRotateCcw />, action: () => { setOpenMenu(null); editorStore.reopenClosedTab(); } },
-        { label: 'New Window', shortcut: '⇧⌘N', icon: <IconExternalLink />, action: () => { setOpenMenu(null); const tab = editorStore.getActiveTab(); if (tab) editorStore.detachTab(tab.id); } },
+        { label: 'Reopen Closed Tab', shortcut: '⇧⌘T', icon: <IconRotateCcw />, action: () => { setOpenMenu(null); useEditorStore.getState().reopenClosedTab(); } },
+        { label: 'New Window', shortcut: '⇧⌘N', icon: <IconExternalLink />, action: () => { setOpenMenu(null); const tab = useEditorStore.getState().getActiveTab(); if (tab) useEditorStore.getState().detachTab(tab.id); } },
         { label: 'Open...', shortcut: '⌘O', icon: <IconFolderOpen />, action: onOpen },
         { label: 'Save', shortcut: '⌘S', icon: <IconSave />, action: onSave },
         { label: 'Save As...', shortcut: '⇧⌘S', icon: <IconSaveAs />, action: onSaveAs },
-        { label: 'Auto Save', icon: <IconAutoSave />, toggle: true, checked: settingsStore.autoSave, action: () => { setOpenMenu(null); settingsStore.toggleAutoSave(); } },
+        { label: 'Auto Save', icon: <IconAutoSave />, toggle: true, checked: autoSave, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleAutoSave(); } },
         { label: '', divider: true },
         { label: 'Close Tab', shortcut: '⌘W', icon: <IconX />, action: () => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('request-close-tab')); } },
     ];
 
     const editMenu: MenuItem[] = [
-        { label: 'Undo', shortcut: '⌘Z', icon: <IconUndo />, action: () => { setOpenMenu(null); const tab = editorStore.getActiveTab(); if (tab) editorStore.undo(tab.id); } },
-        { label: 'Redo', shortcut: '⇧⌘Z', icon: <IconRedo />, action: () => { setOpenMenu(null); const tab = editorStore.getActiveTab(); if (tab) editorStore.redo(tab.id); } },
+        { label: 'Undo', shortcut: '⌘Z', icon: <IconUndo />, action: () => { setOpenMenu(null); notepadUndo(); } },
+        { label: 'Redo', shortcut: '⇧⌘Z', icon: <IconRedo />, action: () => { setOpenMenu(null); notepadRedo(); } },
         { label: '', divider: true },
-        { label: 'Cut', shortcut: '⌘X', icon: <IconScissors />, action: () => { setOpenMenu(null); document.execCommand('cut'); } },
-        { label: 'Copy', shortcut: '⌘C', icon: <IconCopy />, action: () => { setOpenMenu(null); document.execCommand('copy'); } },
-        { label: 'Paste', shortcut: '⌘V', icon: <IconClipboard />, action: () => { setOpenMenu(null); document.execCommand('paste'); } },
-        { label: 'Delete', icon: <IconTrash />, action: () => { setOpenMenu(null); document.execCommand('delete'); } },
+        { label: 'Cut', shortcut: '⌘X', icon: <IconScissors />, action: () => { setOpenMenu(null); notepadExecClipboard('cut'); } },
+        { label: 'Copy', shortcut: '⌘C', icon: <IconCopy />, action: () => { setOpenMenu(null); notepadExecClipboard('copy'); } },
+        { label: 'Paste', shortcut: '⌘V', icon: <IconClipboard />, action: () => { setOpenMenu(null); notepadExecClipboard('paste'); } },
+        { label: 'Delete', icon: <IconTrash />, action: () => { setOpenMenu(null); notepadDeleteSelection(); } },
         { label: '', divider: true },
-        { label: 'Find...', shortcut: '⌘F', icon: <IconSearch />, action: () => { setOpenMenu(null); settingsStore.toggleFindReplace('find'); } },
-        { label: 'Replace...', shortcut: '⌘H', icon: <IconReplace />, action: () => { setOpenMenu(null); settingsStore.toggleFindReplace('replace'); } },
+        { label: 'Find...', shortcut: '⌘F', icon: <IconSearch />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('find'); } },
+        { label: 'Replace...', shortcut: '⌘H', icon: <IconReplace />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('replace'); } },
         { label: '', divider: true },
-        { label: 'Select All', shortcut: '⌘A', icon: <IconSelectAll />, action: () => { setOpenMenu(null); document.execCommand('selectAll'); } },
+        { label: 'Select All', shortcut: '⌘A', icon: <IconSelectAll />, action: () => { setOpenMenu(null); notepadSelectAll(); } },
         { label: 'Time/Date', shortcut: 'F5', icon: <IconClock />, action: handleInsertDateTime },
     ];
 
     const viewMenu: MenuItem[] = [
-        { label: 'Zoom In', shortcut: '⌘+', icon: <IconZoomIn />, action: () => { setOpenMenu(null); settingsStore.zoomIn(); } },
-        { label: 'Zoom Out', shortcut: '⌘-', icon: <IconZoomOut />, action: () => { setOpenMenu(null); settingsStore.zoomOut(); } },
-        { label: 'Reset Zoom', shortcut: '⌘0', icon: <IconRotateCcw />, action: () => { setOpenMenu(null); settingsStore.resetZoom(); } },
+        { label: 'Zoom In', shortcut: '⌘+', icon: <IconZoomIn />, action: () => { setOpenMenu(null); useSettingsStore.getState().zoomIn(); } },
+        { label: 'Zoom Out', shortcut: '⌘-', icon: <IconZoomOut />, action: () => { setOpenMenu(null); useSettingsStore.getState().zoomOut(); } },
+        { label: 'Reset Zoom', shortcut: '⌘0', icon: <IconRotateCcw />, action: () => { setOpenMenu(null); useSettingsStore.getState().resetZoom(); } },
         { label: '', divider: true },
-        { label: 'Word Wrap', icon: <IconWrapText />, toggle: true, checked: settingsStore.wordWrap, action: () => { setOpenMenu(null); settingsStore.toggleWordWrap(); } },
-        { label: 'Status Bar', icon: <IconPanelBottom />, toggle: true, checked: settingsStore.showStatusBar, action: () => { setOpenMenu(null); settingsStore.toggleStatusBar(); } },
+        { label: 'Word Wrap', icon: <IconWrapText />, toggle: true, checked: wordWrap, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleWordWrap(); } },
+        { label: 'Status Bar', icon: <IconPanelBottom />, toggle: true, checked: showStatusBar, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleStatusBar(); } },
     ];
 
     const menus: { id: MenuId; label: string; items: MenuItem[] }[] = [

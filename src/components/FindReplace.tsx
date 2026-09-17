@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useEditorStore } from '../stores/editorStore';
+import { notepadGetText, notepadReplaceRange, notepadSelectRange, notepadSetText } from '../editor/notepadEditor';
 import './FindReplace.css';
+
+function getDocText(fallback?: string): string {
+    return notepadGetText() || fallback || '';
+}
 
 export const FindReplace: React.FC = () => {
     const { showFindReplace, findReplaceMode, closeFindReplace } = useSettingsStore();
-    const { tabs, activeTabId, updateContent, pushUndo } = useEditorStore();
-    const activeTab = tabs.find((t) => t.id === activeTabId);
+    const activeTab = useEditorStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
 
     const [searchTerm, setSearchTerm] = useState('');
     const [replaceTerm, setReplaceTerm] = useState('');
@@ -25,8 +29,9 @@ export const FindReplace: React.FC = () => {
     }, [showFindReplace, findReplaceMode]);
 
     const findMatches = useCallback((): number[] => {
-        if (!activeTab || !searchTerm) return [];
-        const content = activeTab.content;
+        if (!searchTerm) return [];
+        const content = getDocText(activeTab?.content);
+        if (!content) return [];
         const flags = matchCase ? 'g' : 'gi';
         let pattern = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         if (wholeWord) {
@@ -37,6 +42,7 @@ export const FindReplace: React.FC = () => {
         let match;
         while ((match = regex.exec(content)) !== null) {
             positions.push(match.index);
+            if (match[0].length === 0) regex.lastIndex++;
         }
         return positions;
     }, [activeTab?.content, searchTerm, matchCase, wholeWord]);
@@ -60,59 +66,31 @@ export const FindReplace: React.FC = () => {
             newIndex = (currentMatch - 1 + positions.length) % positions.length;
         }
         setCurrentMatch(newIndex);
-
-        // Select the match in the textarea
-        const textarea = document.querySelector('.editor-textarea') as HTMLTextAreaElement;
-        if (textarea) {
-            const pos = positions[newIndex];
-            textarea.focus();
-            textarea.setSelectionRange(pos, pos + searchTerm.length);
-            // Scroll into view
-            const textBefore = activeTab!.content.substring(0, pos);
-            const lineNum = textBefore.split('\n').length;
-            const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
-            textarea.scrollTop = Math.max(0, (lineNum - 5) * lineHeight);
-        }
+        const pos = positions[newIndex];
+        notepadSelectRange(pos, pos + searchTerm.length);
     };
 
     const handleReplace = () => {
-        if (!activeTab || totalMatches === 0) return;
+        if (totalMatches === 0) return;
         const positions = findMatches();
         if (positions.length === 0) return;
 
         const pos = positions[currentMatch];
-        pushUndo(activeTab.id, activeTab.content);
-        const newContent =
-            activeTab.content.substring(0, pos) +
-            replaceTerm +
-            activeTab.content.substring(pos + searchTerm.length);
-        updateContent(activeTab.id, newContent);
-
-        // Update textarea
-        const textarea = document.querySelector('.editor-textarea') as HTMLTextAreaElement;
-        if (textarea) {
-            textarea.value = newContent;
-            textarea.setSelectionRange(pos, pos + replaceTerm.length);
-        }
+        notepadReplaceRange(pos, pos + searchTerm.length, replaceTerm);
+        useEditorStore.getState().flushPendingContent();
     };
 
     const handleReplaceAll = () => {
-        if (!activeTab || totalMatches === 0) return;
-
-        pushUndo(activeTab.id, activeTab.content);
+        if (totalMatches === 0) return;
+        const content = getDocText(activeTab?.content);
         const flags = matchCase ? 'g' : 'gi';
         let pattern = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         if (wholeWord) {
             pattern = `\\b${pattern}\\b`;
         }
         const regex = new RegExp(pattern, flags);
-        const newContent = activeTab.content.replace(regex, replaceTerm);
-        updateContent(activeTab.id, newContent);
-
-        const textarea = document.querySelector('.editor-textarea') as HTMLTextAreaElement;
-        if (textarea) {
-            textarea.value = newContent;
-        }
+        notepadSetText(content.replace(regex, replaceTerm));
+        useEditorStore.getState().flushPendingContent();
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {

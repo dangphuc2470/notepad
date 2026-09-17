@@ -127,7 +127,9 @@ button,
 }
 
 /* Allow text selection only in editor textarea and text input fields */
-.editor-textarea,
+.cm-editor,
+.cm-content,
+.cm-line,
 input[type="text"],
 select {
   user-select: text !important;
