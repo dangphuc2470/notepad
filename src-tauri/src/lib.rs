@@ -6,6 +6,46 @@ use file_ops::{read_file, write_file};
 use session::{clear_session, load_session, save_session};
 
 #[tauri::command]
+fn clipboard_write_text(text: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2_app_kit::{NSPasteboard, NSPasteboardTypeString};
+        use objc2_foundation::NSString;
+        let pb = NSPasteboard::generalPasteboard();
+        pb.clearContents();
+        let ty = unsafe { NSPasteboardTypeString };
+        if pb.setString_forType(&NSString::from_str(&text), ty) {
+            Ok(())
+        } else {
+            Err("Failed to write clipboard".into())
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = text;
+        Err("Clipboard is only supported on macOS".into())
+    }
+}
+
+#[tauri::command]
+fn clipboard_read_text() -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2_app_kit::{NSPasteboard, NSPasteboardTypeString};
+        let pb = NSPasteboard::generalPasteboard();
+        let ty = unsafe { NSPasteboardTypeString };
+        Ok(pb
+            .stringForType(ty)
+            .map(|s| s.to_string())
+            .unwrap_or_default())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Clipboard is only supported on macOS".into())
+    }
+}
+
+#[tauri::command]
 fn is_last_window(window: tauri::Window) -> bool {
     use tauri::Manager;
     let app = window.app_handle();
@@ -782,6 +822,8 @@ pub fn run() {
             load_session,
             clear_session,
             is_last_window,
+            clipboard_write_text,
+            clipboard_read_text,
             prompt_save_dialog,
             exit_app,
             fade_close_window,

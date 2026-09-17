@@ -1,5 +1,6 @@
 import { EditorView } from '@codemirror/view';
 import { undo, redo, selectAll, deleteCharForward } from '@codemirror/commands';
+import { invoke } from '@tauri-apps/api/core';
 
 let view: EditorView | null = null;
 
@@ -82,10 +83,31 @@ export function notepadDeleteSelection() {
     }
 }
 
-export function notepadExecClipboard(command: 'cut' | 'copy' | 'paste') {
+export async function notepadExecClipboard(command: 'cut' | 'copy' | 'paste') {
     if (!view) return;
-    view.focus();
-    document.execCommand(command);
+    const editor = view;
+    editor.focus();
+    try {
+        if (command === 'paste') {
+            const text = await invoke<string>('clipboard_read_text');
+            if (!view || !text) return;
+            view.focus();
+            view.dispatch(view.state.replaceSelection(text));
+            return;
+        }
+        const { from, to } = editor.state.selection.main;
+        if (from === to) return;
+        const selected = editor.state.sliceDoc(from, to);
+        await invoke('clipboard_write_text', { text: selected });
+        if (command === 'cut' && view === editor && editor.state.sliceDoc(from, to) === selected) {
+            editor.dispatch({
+                changes: { from, to, insert: '' },
+                selection: { anchor: from },
+            });
+        }
+    } catch (err) {
+        console.error(`Clipboard ${command} failed:`, err);
+    }
 }
 
 export function notepadIsEditorTarget(el: EventTarget | null): boolean {
