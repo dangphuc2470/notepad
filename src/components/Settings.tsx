@@ -22,7 +22,8 @@ export const Settings: React.FC = () => {
         fontFamily, setFontFamily, fontSize, setFontSize,
         wordWrap, toggleWordWrap,
         reduceMotion, toggleReduceMotion,
-        autoSave, toggleAutoSave
+        autoSave, toggleAutoSave,
+        whenOpening, setWhenOpening
     } = useSettingsStore();
 
     const [isRendered, setIsRendered] = React.useState(isSettingsOpen);
@@ -84,6 +85,11 @@ export const Settings: React.FC = () => {
         return 'Use system setting';
     };
 
+    const getWhenOpeningLabel = (val: 'resume' | 'new_window') => {
+        if (val === 'resume') return 'Resume previous session';
+        return 'Open a new window';
+    };
+
     return (
         <div className={`settings-overlay ${isClosing ? 'is-closing' : ''}`} ref={overlayRef} onClick={handleOverlayClick}>
             <div className={`settings-modal ${isClosing ? 'is-closing' : ''}`}>
@@ -111,6 +117,25 @@ export const Settings: React.FC = () => {
                                     <option value="system">Use system setting</option>
                                 </select>
                                 <span className="settings-select-label">{getThemeLabel(theme)}</span>
+                                <span className="settings-select-chevron">
+                                    <IconDoubleChevron />
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* When opening */}
+                        <div className="settings-row">
+                            <span className="settings-label">When opening</span>
+                            <div className="settings-select-wrapper">
+                                <select
+                                    className="settings-select"
+                                    value={whenOpening}
+                                    onChange={(e) => setWhenOpening(e.target.value as 'resume' | 'new_window')}
+                                >
+                                    <option value="resume">Resume previous session</option>
+                                    <option value="new_window">Open a new window</option>
+                                </select>
+                                <span className="settings-select-label">{getWhenOpeningLabel(whenOpening)}</span>
                                 <span className="settings-select-chevron">
                                     <IconDoubleChevron />
                                 </span>

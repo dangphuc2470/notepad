@@ -90,6 +90,11 @@ function App() {
             const path = await invoke<string | null>('get_cli_file');
             if (path) {
               await openFilePath(path);
+            } else {
+              const { whenOpening } = useSettingsStore.getState();
+              if (whenOpening === 'resume') {
+                await useEditorStore.getState().loadSession();
+              }
             }
           } catch (e) {
             console.error('Failed to get CLI file:', e);
@@ -204,17 +209,29 @@ function App() {
         isClosing = true;
 
         try {
-          const dirtyTabs = useEditorStore.getState().tabs.filter((t) => t.isDirty);
-          const { reduceMotion } = useSettingsStore.getState();
+          const isLast = await invoke<boolean>('is_last_window');
+          const { whenOpening, reduceMotion } = useSettingsStore.getState();
           const closeCmd = reduceMotion ? 'exit_app' : 'fade_close_window';
 
-          if (dirtyTabs.length === 0) {
-            // No unsaved changes -> exit window
+          // If this is the last window and whenOpening is 'resume',
+          // persist session drafts immediately without prompting for save.
+          if (isLast && whenOpening === 'resume') {
+            await useEditorStore.getState().saveSessionNow();
             await invoke(closeCmd);
             return;
           }
 
-          // Prompt for each unsaved tab sequentially
+          const dirtyTabs = useEditorStore.getState().tabs.filter((t) => t.isDirty);
+
+          if (dirtyTabs.length === 0) {
+            if (isLast && whenOpening === 'new_window') {
+              await invoke('clear_session');
+            }
+            await invoke(closeCmd);
+            return;
+          }
+
+          // Prompt for each unsaved tab sequentially on auxiliary windows or whenOpening === 'new_window'
           for (const tab of dirtyTabs) {
             const action = await invoke<string>('prompt_save_dialog', {
               documentName: tab.title || 'Untitled',
@@ -233,6 +250,10 @@ function App() {
               return;
             }
             // 'dont_save' -> continue to next dirty tab
+          }
+
+          if (isLast && whenOpening === 'new_window') {
+            await invoke('clear_session');
           }
 
           // All dirty tabs resolved -> exit window

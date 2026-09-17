@@ -3,7 +3,17 @@ mod models;
 mod session;
 
 use file_ops::{read_file, write_file};
-use session::{load_session, save_session};
+use session::{clear_session, load_session, save_session};
+
+#[tauri::command]
+fn is_last_window(window: tauri::Window) -> bool {
+    use tauri::Manager;
+    let app = window.app_handle();
+    let remaining_count = app.webview_windows().into_iter()
+        .filter(|(k, _)| k != "tab-drag-ghost")
+        .count();
+    remaining_count <= 1
+}
 
 #[tauri::command]
 fn prompt_save_dialog(
@@ -770,6 +780,8 @@ pub fn run() {
             write_file,
             save_session,
             load_session,
+            clear_session,
+            is_last_window,
             prompt_save_dialog,
             exit_app,
             fade_close_window,
