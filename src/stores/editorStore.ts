@@ -158,7 +158,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // For untitled tabs (no filePath), derive title from first non-empty line of content
         let title = t.title;
         if (!t.filePath) {
-          const firstLine = content.trim().split('\n')[0]?.trim();
+          const newlineIdx = content.indexOf('\n');
+          const firstLine = (newlineIdx === -1 ? content : content.slice(0, newlineIdx)).trim();
           if (firstLine) {
             title = firstLine.length > 12 ? firstLine.slice(0, 12).trim() + '...' : firstLine;
           } else {

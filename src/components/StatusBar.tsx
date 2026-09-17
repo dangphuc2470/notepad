@@ -8,10 +8,17 @@ export const StatusBar: React.FC = () => {
     const { zoom, showStatusBar } = useSettingsStore();
     const activeTab = tabs.find((t) => t.id === activeTabId);
 
-    if (!showStatusBar || !activeTab) return null;
+    const { charCount, lineCount } = React.useMemo(() => {
+        if (!activeTab) return { charCount: 0, lineCount: 0 };
+        const content = activeTab.content;
+        let lines = 1;
+        for (let i = 0; i < content.length; i++) {
+            if (content.charCodeAt(i) === 10) lines++;
+        }
+        return { charCount: content.length, lineCount: lines };
+    }, [activeTab?.content]);
 
-    const charCount = activeTab.content.length;
-    const lineCount = activeTab.content.split('\n').length;
+    if (!showStatusBar || !activeTab) return null;
 
     return (
         <div className="status-bar">

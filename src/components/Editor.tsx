@@ -7,6 +7,9 @@ import './Editor.css';
 export const Editor: React.FC = () => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isLocalInputRef = useRef(false);
+    const lastUndoTimeRef = useRef(0);
+
     const {
         tabs,
         activeTabId,
@@ -25,21 +28,30 @@ export const Editor: React.FC = () => {
 
         const value = textarea.value;
         const selStart = textarea.selectionStart;
-        const textBefore = value.substring(0, selStart);
-        const lines = textBefore.split('\n');
-        const line = lines.length;
-        const col = lines[lines.length - 1].length + 1;
+        let line = 1;
+        let lastNewline = -1;
+        for (let i = 0; i < selStart; i++) {
+            if (value.charCodeAt(i) === 10) {
+                line++;
+                lastNewline = i;
+            }
+        }
+        const col = selStart - lastNewline;
         updateCursor(activeTab.id, line, col);
     }, [activeTab?.id, updateCursor]);
 
-    // Sync textarea value with store content (for undo/redo and tab switches)
+    // Sync textarea value with store content (only for external updates, undo/redo, or tab switches)
     useEffect(() => {
+        if (isLocalInputRef.current) return;
         if (textareaRef.current && activeTab) {
-            // Only update if values differ (to preserve cursor position during typing)
             if (textareaRef.current.value !== activeTab.content) {
                 const scrollPos = textareaRef.current.scrollTop;
+                const selStart = textareaRef.current.selectionStart;
+                const selEnd = textareaRef.current.selectionEnd;
                 textareaRef.current.value = activeTab.content;
                 textareaRef.current.scrollTop = scrollPos;
+                textareaRef.current.selectionStart = selStart;
+                textareaRef.current.selectionEnd = selEnd;
             }
         }
     }, [activeTab?.content]);
@@ -87,8 +99,12 @@ export const Editor: React.FC = () => {
     const handleInput = useCallback(
         (e: React.ChangeEvent<HTMLTextAreaElement>) => {
             if (!activeTab) return;
+            isLocalInputRef.current = true;
             updateContent(activeTab.id, e.target.value);
             updateCursorPosition();
+            requestAnimationFrame(() => {
+                isLocalInputRef.current = false;
+            });
         },
         [activeTab?.id, updateContent, updateCursorPosition]
     );
@@ -96,31 +112,42 @@ export const Editor: React.FC = () => {
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
             if (!activeTab) return;
-            // Push undo state before typing starts (on keydown that modifies content)
+            const now = Date.now();
+            const shouldSnapshot =
+                e.key === ' ' ||
+                e.key === 'Enter' ||
+                now - lastUndoTimeRef.current > 800;
+
+            // Push undo state before typing starts, batched to avoid freezing on massive files
             if (
-                !e.metaKey &&
-                !e.ctrlKey &&
-                e.key.length === 1
+                (!e.metaKey && !e.ctrlKey && e.key.length === 1) ||
+                e.key === 'Backspace' ||
+                e.key === 'Delete'
             ) {
-                pushUndo(activeTab.id, activeTab.content);
+                if (shouldSnapshot) {
+                    pushUndo(activeTab.id, activeTab.content);
+                    lastUndoTimeRef.current = now;
+                }
             }
-            // Also push undo for backspace/delete
-            if (e.key === 'Backspace' || e.key === 'Delete') {
-                pushUndo(activeTab.id, activeTab.content);
-            }
+
             // Handle Tab key for indentation
             if (e.key === 'Tab') {
                 e.preventDefault();
                 pushUndo(activeTab.id, activeTab.content);
+                lastUndoTimeRef.current = now;
                 const textarea = textareaRef.current;
                 if (!textarea) return;
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
                 const value = textarea.value;
                 const newValue = value.substring(0, start) + '\t' + value.substring(end);
+                isLocalInputRef.current = true;
                 textarea.value = newValue;
                 textarea.selectionStart = textarea.selectionEnd = start + 1;
                 updateContent(activeTab.id, newValue);
+                requestAnimationFrame(() => {
+                    isLocalInputRef.current = false;
+                });
             }
         },
         [activeTab?.id, activeTab?.content, pushUndo, updateContent]
