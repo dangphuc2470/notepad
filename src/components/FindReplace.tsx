@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useEditorStore } from '../stores/editorStore';
-import { notepadGetText, notepadReplaceRange, notepadSelectRange, notepadSetText } from '../editor/notepadEditor';
+import { getNotepadView, notepadReplaceRange, notepadSelectRange, notepadSetText } from '../editor/notepadEditor';
 import './FindReplace.css';
 
 function getDocText(fallback?: string): string {
-    return notepadGetText() || fallback || '';
+    const editorView = getNotepadView();
+    return editorView ? editorView.state.doc.toString() : fallback || '';
 }
 
 export const FindReplace: React.FC = () => {
