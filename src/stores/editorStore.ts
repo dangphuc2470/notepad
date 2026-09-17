@@ -46,6 +46,11 @@ interface EditorState {
   undo: (id: string) => void;
   redo: (id: string) => void;
   pushUndo: (id: string, content: string) => void;
+  cursorPosition: { line: number; col: number };
+  setCursorPosition: (line: number, col: number) => void;
+  markTabDirty: (id: string) => void;
+  registerFlushContent: (fn: () => void) => () => void;
+  flushPendingContent: () => void;
   detachTab: (id: string, screenX?: number, screenY?: number) => Promise<void>;
   initDetachedTab: (tab: Tab) => void;
   openFileInTab: (fileData: { title: string; filePath: string; content: string; encoding: string; lineEnding: string }) => void;
@@ -80,24 +85,55 @@ function createDefaultTab(overrides?: Partial<Tab>): Tab {
   };
 }
 
+let registeredFlush: (() => void) | null = null;
+
 const initialTab = createDefaultTab();
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [initialTab],
   activeTabId: initialTab.id,
+  cursorPosition: { line: initialTab.cursorLine, col: initialTab.cursorCol },
   sessionSaveTimer: null,
   closedTabsHistory: [],
 
+  setCursorPosition: (line, col) => set({ cursorPosition: { line, col } }),
+
+  markTabDirty: (id) => {
+    set((state) => {
+      const tab = state.tabs.find((t) => t.id === id);
+      if (!tab || tab.isDirty) return state;
+      return {
+        tabs: state.tabs.map((t) => (t.id === id ? { ...t, isDirty: true } : t)),
+      };
+    });
+  },
+
+  registerFlushContent: (fn) => {
+    registeredFlush = fn;
+    return () => {
+      if (registeredFlush === fn) registeredFlush = null;
+    };
+  },
+
+  flushPendingContent: () => {
+    if (registeredFlush) {
+      registeredFlush();
+    }
+  },
+
   addTab: (overrides) => {
+    get().flushPendingContent();
     const newTab = createDefaultTab(overrides);
     set((state) => ({
       tabs: [...state.tabs, newTab],
       activeTabId: newTab.id,
+      cursorPosition: { line: newTab.cursorLine, col: newTab.cursorCol },
     }));
     get().saveSession();
   },
 
   closeTab: (id) => {
+    get().flushPendingContent();
     const state = get();
     const closingTab = state.tabs.find((t) => t.id === id);
     const idx = state.tabs.findIndex((t) => t.id === id);
@@ -147,13 +183,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   setActiveTab: (id) => {
-    set({ activeTabId: id });
+    get().flushPendingContent();
+    const tab = get().tabs.find((t) => t.id === id);
+    set({
+      activeTabId: id,
+      cursorPosition: tab ? { line: tab.cursorLine, col: tab.cursorCol } : { line: 1, col: 1 },
+    });
     get().saveSession();
   },
 
   updateContent: (id, content) => {
-    set((state) => ({
-      tabs: state.tabs.map((t) => {
+    set((state) => {
+      let changed = false;
+      const newTabs = state.tabs.map((t) => {
         if (t.id !== id) return t;
         // For untitled tabs (no filePath), derive title from first non-empty line of content
         let title = t.title;
@@ -168,9 +210,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
         // For untitled tabs (no filePath), reset dirty when content is empty
         const isDirty = !t.filePath && content === '' ? false : true;
+        if (t.content === content && t.title === title && t.isDirty === isDirty) {
+          return t;
+        }
+        changed = true;
         return { ...t, content, isDirty, title };
-      }),
-    }));
+      });
+      return changed ? { tabs: newTabs } : state;
+    });
     get().saveSession();
   },
 
@@ -228,6 +275,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   updateCursor: (id, line, col) => {
     set((state) => ({
+      cursorPosition: state.activeTabId === id ? { line, col } : state.cursorPosition,
       tabs: state.tabs.map((t) =>
         t.id === id ? { ...t, cursorLine: line, cursorCol: col } : t
       ),
@@ -295,6 +343,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   saveSessionNow: async () => {
+    get().flushPendingContent();
     const current = get();
     if (current.sessionSaveTimer) {
       clearTimeout(current.sessionSaveTimer);
@@ -311,8 +360,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             is_dirty: t.isDirty,
             encoding: t.encoding,
             line_ending: t.lineEnding,
-            cursor_line: t.cursorLine,
-            cursor_col: t.cursorCol,
+            cursor_line: t.id === current.activeTabId ? current.cursorPosition.line : t.cursorLine,
+            cursor_col: t.id === current.activeTabId ? current.cursorPosition.col : t.cursorCol,
             scroll_top: t.scrollTop,
           })),
           active_tab_id: current.activeTabId,
@@ -342,22 +391,25 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       } | null>('load_session');
 
       if (session && session.tabs.length > 0) {
+        const loadedTabs = session.tabs.map((t) => ({
+          id: t.id,
+          title: t.title,
+          filePath: t.file_path,
+          content: t.content,
+          isDirty: t.is_dirty,
+          encoding: t.encoding,
+          lineEnding: t.line_ending,
+          cursorLine: t.cursor_line,
+          cursorCol: t.cursor_col,
+          scrollTop: t.scroll_top,
+          undoStack: [],
+          redoStack: [],
+        }));
+        const active = loadedTabs.find((t) => t.id === session.active_tab_id) || loadedTabs[0];
         set({
-          tabs: session.tabs.map((t) => ({
-            id: t.id,
-            title: t.title,
-            filePath: t.file_path,
-            content: t.content,
-            isDirty: t.is_dirty,
-            encoding: t.encoding,
-            lineEnding: t.line_ending,
-            cursorLine: t.cursor_line,
-            cursorCol: t.cursor_col,
-            scrollTop: t.scroll_top,
-            undoStack: [],
-            redoStack: [],
-          })),
+          tabs: loadedTabs,
           activeTabId: session.active_tab_id,
+          cursorPosition: active ? { line: active.cursorLine, col: active.cursorCol } : { line: 1, col: 1 },
         });
         return true;
       }

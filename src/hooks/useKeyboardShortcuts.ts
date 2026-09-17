@@ -4,8 +4,6 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from './useFileOperations';
 
 export const useKeyboardShortcuts = () => {
-    const editorStore = useEditorStore();
-    const settingsStore = useSettingsStore();
     const { handleOpen, handleSave, handleSaveAs } = useFileOperations();
 
     useEffect(() => {
@@ -16,23 +14,19 @@ export const useKeyboardShortcuts = () => {
             if (!isMeta) {
                 if (e.key === 'F5') {
                     e.preventDefault();
-                    const tab = editorStore.getActiveTab();
-                    if (!tab) return;
                     const now = new Date();
                     const dateStr = `${now.toLocaleTimeString()} ${now.toLocaleDateString()}`;
                     const textarea = document.querySelector('.editor-textarea') as HTMLTextAreaElement;
                     if (textarea) {
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        const newContent = tab.content.substring(0, start) + dateStr + tab.content.substring(end);
-                        editorStore.pushUndo(tab.id, tab.content);
-                        editorStore.updateContent(tab.id, newContent);
-                        textarea.value = newContent;
-                        textarea.selectionStart = textarea.selectionEnd = start + dateStr.length;
+                        textarea.focus();
+                        document.execCommand('insertText', false, dateStr);
                     }
                 }
                 return;
             }
+
+            const editorStore = useEditorStore.getState();
+            const settingsStore = useSettingsStore.getState();
 
             switch (e.key.toLowerCase()) {
                 case 't':
@@ -91,27 +85,38 @@ export const useKeyboardShortcuts = () => {
                     settingsStore.toggleFindReplace('replace');
                     break;
 
-                case 'z':
+                case 'z': {
+                    const isTextarea =
+                        document.activeElement instanceof HTMLTextAreaElement ||
+                        document.activeElement instanceof HTMLInputElement;
+                    if (isTextarea) {
+                        // Native WebKit undo/redo with zero latency
+                        return;
+                    }
                     e.preventDefault();
-                    if (isShift) {
-                        // Cmd+Shift+Z = Redo
-                        const t = editorStore.getActiveTab();
-                        if (t) editorStore.redo(t.id);
-                    } else {
-                        // Cmd+Z = Undo
-                        const t = editorStore.getActiveTab();
-                        if (t) editorStore.undo(t.id);
+                    const t = editorStore.getActiveTab();
+                    if (t) {
+                        if (isShift) {
+                            editorStore.redo(t.id);
+                        } else {
+                            editorStore.undo(t.id);
+                        }
                     }
                     break;
+                }
 
-                case 'y':
-                    // Cmd+Y = Redo (alternative)
-                    e.preventDefault();
-                    {
-                        const t = editorStore.getActiveTab();
-                        if (t) editorStore.redo(t.id);
+                case 'y': {
+                    const isTextarea =
+                        document.activeElement instanceof HTMLTextAreaElement ||
+                        document.activeElement instanceof HTMLInputElement;
+                    if (isTextarea) {
+                        return;
                     }
+                    e.preventDefault();
+                    const t = editorStore.getActiveTab();
+                    if (t) editorStore.redo(t.id);
                     break;
+                }
 
                 case '=':
                 case '+':
@@ -160,6 +165,7 @@ export const useKeyboardShortcuts = () => {
         const handleWheel = (e: WheelEvent) => {
             if (e.metaKey) {
                 e.preventDefault();
+                const settingsStore = useSettingsStore.getState();
                 if (e.deltaY < 0) {
                     settingsStore.zoomIn();
                 } else {

@@ -7,58 +7,96 @@ import './Editor.css';
 export const Editor: React.FC = () => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isLocalInputRef = useRef(false);
-    const lastUndoTimeRef = useRef(0);
+    const pendingContentRef = useRef<string | null>(null);
+    const contentSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const cursorRafRef = useRef<number | null>(null);
+    const lastSyncedContentRef = useRef<string>('');
 
-    const {
-        tabs,
-        activeTabId,
-        updateContent,
-        updateCursor,
-        updateScrollTop,
-        pushUndo,
-    } = useEditorStore();
+    const activeTabId = useEditorStore((s) => s.activeTabId);
+    const activeTab = useEditorStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
+    const markTabDirty = useEditorStore((s) => s.markTabDirty);
+    const updateContent = useEditorStore((s) => s.updateContent);
+    const setCursorPosition = useEditorStore((s) => s.setCursorPosition);
+    const updateScrollTop = useEditorStore((s) => s.updateScrollTop);
+    const registerFlushContent = useEditorStore((s) => s.registerFlushContent);
+
     const { wordWrap, zoom, fontFamily, fontSize, autoSave } = useSettingsStore();
 
-    const activeTab = tabs.find((t) => t.id === activeTabId);
+    const activeTabRef = useRef(activeTab);
+    activeTabRef.current = activeTab;
+
+    const flushPendingContent = useCallback(() => {
+        if (contentSyncTimerRef.current) {
+            clearTimeout(contentSyncTimerRef.current);
+            contentSyncTimerRef.current = null;
+        }
+        if (pendingContentRef.current !== null && activeTabRef.current) {
+            const val = pendingContentRef.current;
+            pendingContentRef.current = null;
+            lastSyncedContentRef.current = val;
+            updateContent(activeTabRef.current.id, val);
+        }
+    }, [updateContent]);
+
+    // Register flush callback so save/session actions can commit pending typing synchronously
+    useEffect(() => {
+        return registerFlushContent(flushPendingContent);
+    }, [registerFlushContent, flushPendingContent]);
+
+    // Flush pending changes before switching tabs
+    const prevTabIdRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (prevTabIdRef.current && prevTabIdRef.current !== activeTabId) {
+            flushPendingContent();
+        }
+        prevTabIdRef.current = activeTabId;
+    }, [activeTabId, flushPendingContent]);
 
     const updateCursorPosition = useCallback(() => {
-        const textarea = textareaRef.current;
-        if (!textarea || !activeTab) return;
+        if (cursorRafRef.current !== null) {
+            cancelAnimationFrame(cursorRafRef.current);
+        }
+        cursorRafRef.current = requestAnimationFrame(() => {
+            cursorRafRef.current = null;
+            const textarea = textareaRef.current;
+            if (!textarea) return;
 
-        const value = textarea.value;
-        const selStart = textarea.selectionStart;
-        let line = 1;
-        let lastNewline = -1;
-        for (let i = 0; i < selStart; i++) {
-            if (value.charCodeAt(i) === 10) {
+            const val = textarea.value;
+            const selStart = textarea.selectionStart;
+
+            const lastNewline = val.lastIndexOf('\n', selStart - 1);
+            const col = selStart - lastNewline;
+
+            let line = 1;
+            let pos = 0;
+            while ((pos = val.indexOf('\n', pos)) !== -1 && pos < selStart) {
                 line++;
-                lastNewline = i;
+                pos++;
             }
-        }
-        const col = selStart - lastNewline;
-        updateCursor(activeTab.id, line, col);
-    }, [activeTab?.id, updateCursor]);
 
-    // Sync textarea value with store content (only for external updates, undo/redo, or tab switches)
+            setCursorPosition(line, col);
+        });
+    }, [setCursorPosition]);
+
+    // Sync textarea value with store content (external updates, undo/redo, or file loads)
     useEffect(() => {
-        if (isLocalInputRef.current) return;
-        if (textareaRef.current && activeTab) {
-            if (textareaRef.current.value !== activeTab.content) {
-                const scrollPos = textareaRef.current.scrollTop;
-                const selStart = textareaRef.current.selectionStart;
-                const selEnd = textareaRef.current.selectionEnd;
-                textareaRef.current.value = activeTab.content;
-                textareaRef.current.scrollTop = scrollPos;
-                textareaRef.current.selectionStart = selStart;
-                textareaRef.current.selectionEnd = selEnd;
-            }
-        }
+        if (!activeTab || !textareaRef.current) return;
+        if (lastSyncedContentRef.current === activeTab.content) return;
+        lastSyncedContentRef.current = activeTab.content;
+
+        const scrollPos = textareaRef.current.scrollTop;
+        const selStart = textareaRef.current.selectionStart;
+        const selEnd = textareaRef.current.selectionEnd;
+        textareaRef.current.value = activeTab.content;
+        textareaRef.current.scrollTop = scrollPos;
+        textareaRef.current.selectionStart = selStart;
+        textareaRef.current.selectionEnd = selEnd;
     }, [activeTab?.content]);
 
     // Focus and restore scroll on tab switch
     useEffect(() => {
         if (textareaRef.current && activeTab) {
+            lastSyncedContentRef.current = activeTab.content;
             textareaRef.current.value = activeTab.content;
             textareaRef.current.scrollTop = activeTab.scrollTop;
             textareaRef.current.focus();
@@ -66,7 +104,7 @@ export const Editor: React.FC = () => {
         }
     }, [activeTabId]);
 
-    // Auto-save debounced (1000ms after user stops typing) for tabs with an existing filePath
+    // Auto-save debounced (1000ms after content is committed) for tabs with an existing filePath
     useEffect(() => {
         if (!autoSave || !activeTab?.filePath || !activeTab.isDirty) {
             if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
@@ -86,6 +124,7 @@ export const Editor: React.FC = () => {
     // Auto-save immediately when window loses focus (blur)
     useEffect(() => {
         const handleWindowBlur = () => {
+            flushPendingContent();
             const currentTab = useEditorStore.getState().getActiveTab();
             const { autoSave: isAutoSave } = useSettingsStore.getState();
             if (isAutoSave && currentTab?.filePath && currentTab.isDirty) {
@@ -94,70 +133,50 @@ export const Editor: React.FC = () => {
         };
         window.addEventListener('blur', handleWindowBlur);
         return () => window.removeEventListener('blur', handleWindowBlur);
-    }, []);
+    }, [flushPendingContent]);
 
     const handleInput = useCallback(
         (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-            if (!activeTab) return;
-            isLocalInputRef.current = true;
-            updateContent(activeTab.id, e.target.value);
+            const tab = activeTabRef.current;
+            if (!tab) return;
+            const val = e.target.value;
+            pendingContentRef.current = val;
+
+            if (!tab.isDirty) {
+                markTabDirty(tab.id);
+            }
+
+            if (contentSyncTimerRef.current) {
+                clearTimeout(contentSyncTimerRef.current);
+            }
+            contentSyncTimerRef.current = setTimeout(() => {
+                flushPendingContent();
+            }, 200);
+
             updateCursorPosition();
-            requestAnimationFrame(() => {
-                isLocalInputRef.current = false;
-            });
         },
-        [activeTab?.id, updateContent, updateCursorPosition]
+        [markTabDirty, flushPendingContent, updateCursorPosition]
     );
+
+    const handleBlur = useCallback(() => {
+        flushPendingContent();
+    }, [flushPendingContent]);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-            if (!activeTab) return;
-            const now = Date.now();
-            const shouldSnapshot =
-                e.key === ' ' ||
-                e.key === 'Enter' ||
-                now - lastUndoTimeRef.current > 800;
-
-            // Push undo state before typing starts, batched to avoid freezing on massive files
-            if (
-                (!e.metaKey && !e.ctrlKey && e.key.length === 1) ||
-                e.key === 'Backspace' ||
-                e.key === 'Delete'
-            ) {
-                if (shouldSnapshot) {
-                    pushUndo(activeTab.id, activeTab.content);
-                    lastUndoTimeRef.current = now;
-                }
-            }
-
-            // Handle Tab key for indentation
             if (e.key === 'Tab') {
                 e.preventDefault();
-                pushUndo(activeTab.id, activeTab.content);
-                lastUndoTimeRef.current = now;
-                const textarea = textareaRef.current;
-                if (!textarea) return;
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                const value = textarea.value;
-                const newValue = value.substring(0, start) + '\t' + value.substring(end);
-                isLocalInputRef.current = true;
-                textarea.value = newValue;
-                textarea.selectionStart = textarea.selectionEnd = start + 1;
-                updateContent(activeTab.id, newValue);
-                requestAnimationFrame(() => {
-                    isLocalInputRef.current = false;
-                });
+                document.execCommand('insertText', false, '\t');
             }
         },
-        [activeTab?.id, activeTab?.content, pushUndo, updateContent]
+        []
     );
 
     const handleScroll = useCallback(() => {
-        if (textareaRef.current && activeTab) {
-            updateScrollTop(activeTab.id, textareaRef.current.scrollTop);
+        if (textareaRef.current && activeTabRef.current) {
+            updateScrollTop(activeTabRef.current.id, textareaRef.current.scrollTop);
         }
-    }, [activeTab?.id, updateScrollTop]);
+    }, [updateScrollTop]);
 
     const handleClick = useCallback(() => {
         updateCursorPosition();
@@ -180,6 +199,7 @@ export const Editor: React.FC = () => {
                 className="editor-textarea"
                 defaultValue={activeTab.content}
                 onChange={handleInput}
+                onBlur={handleBlur}
                 onKeyDown={handleKeyDown}
                 onKeyUp={handleKeyUp}
                 onClick={handleClick}
