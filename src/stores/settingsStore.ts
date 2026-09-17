@@ -31,8 +31,15 @@ interface SettingsState {
     toggleSettings: () => void;
 }
 
+function readStoredTheme(): 'light' | 'dark' | 'system' {
+    if (typeof localStorage === 'undefined') return 'system';
+    const stored = localStorage.getItem('notepad_theme');
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+    return 'system';
+}
+
 export const useSettingsStore = create<SettingsState>((set) => ({
-    theme: 'system',
+    theme: readStoredTheme(),
     wordWrap: true,
     zoom: 100,
     showStatusBar: true,
@@ -45,7 +52,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     whenOpening: typeof localStorage !== 'undefined' ? ((localStorage.getItem('notepad_when_opening') as 'resume' | 'new_window') || 'resume') : 'resume',
     isSettingsOpen: false,
 
-    setTheme: (theme) => set({ theme }),
+    setTheme: (theme) => {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('notepad_theme', theme);
+        }
+        set({ theme });
+    },
     setWhenOpening: (whenOpening) => {
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem('notepad_when_opening', whenOpening);
