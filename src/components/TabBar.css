@@ -514,6 +514,12 @@
   color: #ffffff;
 }
 
+.tab-context-item.is-disabled {
+  opacity: 0.38;
+  pointer-events: none;
+  cursor: default;
+}
+
 .tab-context-item:hover .tab-context-shortcut {
   color: rgba(255, 255, 255, 0.85);
 }

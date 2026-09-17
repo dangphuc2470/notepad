@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { emit, listen } from '@tauri-apps/api/event';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { useFileOperations } from '../hooks/useFileOperations';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -714,6 +715,10 @@ export const TabBar: React.FC = () => {
         }
     };
 
+    const contextPath = contextMenu
+        ? tabs.find((t) => t.id === contextMenu.id)?.filePath ?? null
+        : null;
+
     return (
         <div
             className={`tab-bar ${draggedId ? 'is-dragging-any' : ''} ${scrollState.canScrollLeft ? 'can-scroll-left' : ''} ${scrollState.canScrollRight ? 'can-scroll-right' : ''}`}
@@ -899,6 +904,27 @@ export const TabBar: React.FC = () => {
                         }}
                     >
                         <span>Duplicate Tab</span>
+                    </div>
+                    <div className="tab-context-divider" />
+                    <div
+                        className={`tab-context-item${contextPath ? '' : ' is-disabled'}`}
+                        onClick={() => {
+                            if (!contextPath) return;
+                            setContextMenu(null);
+                            revealItemInDir(contextPath).catch(console.error);
+                        }}
+                    >
+                        <span>Reveal in Finder</span>
+                    </div>
+                    <div
+                        className={`tab-context-item${contextPath ? '' : ' is-disabled'}`}
+                        onClick={() => {
+                            if (!contextPath) return;
+                            setContextMenu(null);
+                            navigator.clipboard.writeText(contextPath).catch(console.error);
+                        }}
+                    >
+                        <span>Copy as Path</span>
                     </div>
                     <div className="tab-context-divider" />
                     <div
