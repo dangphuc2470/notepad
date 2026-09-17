@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 fn session_file_path() -> PathBuf {
     let mut path = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-    path.push("com.arijitdeb.notepad");
+    path.push("com.phucdnh.notepad");
     fs::create_dir_all(&path).ok();
     path.push("session.json");
     path
@@ -26,4 +26,13 @@ pub fn load_session() -> Result<Option<SessionData>, String> {
     let json = fs::read_to_string(path).map_err(|e| e.to_string())?;
     let session: SessionData = serde_json::from_str(&json).map_err(|e| e.to_string())?;
     Ok(Some(session))
+}
+
+#[tauri::command]
+pub fn clear_session() -> Result<(), String> {
+    let path = session_file_path();
+    if path.exists() {
+        fs::remove_file(path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }

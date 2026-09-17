@@ -11,8 +11,10 @@ interface SettingsState {
     findReplaceMode: 'find' | 'replace';
     reduceMotion: boolean;
     autoSave: boolean;
+    whenOpening: 'resume' | 'new_window';
 
     setTheme: (theme: 'light' | 'dark' | 'system') => void;
+    setWhenOpening: (value: 'resume' | 'new_window') => void;
     toggleWordWrap: () => void;
     toggleReduceMotion: () => void;
     toggleAutoSave: () => void;
@@ -40,9 +42,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     findReplaceMode: 'find',
     reduceMotion: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_reducemotion') === 'true' : false,
     autoSave: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_autosave') === 'true' : false,
+    whenOpening: typeof localStorage !== 'undefined' ? ((localStorage.getItem('notepad_when_opening') as 'resume' | 'new_window') || 'resume') : 'resume',
     isSettingsOpen: false,
 
     setTheme: (theme) => set({ theme }),
+    setWhenOpening: (whenOpening) => {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('notepad_when_opening', whenOpening);
+        }
+        set({ whenOpening });
+    },
     toggleWordWrap: () => set((s) => ({ wordWrap: !s.wordWrap })),
     toggleReduceMotion: () =>
         set((s) => {

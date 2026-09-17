@@ -41,7 +41,8 @@ interface EditorState {
   setLineEnding: (id: string, lineEnding: string) => void;
   getActiveTab: () => Tab | undefined;
   saveSession: () => void;
-  loadSession: () => Promise<void>;
+  saveSessionNow: () => Promise<void>;
+  loadSession: () => Promise<boolean>;
   undo: (id: string) => void;
   redo: (id: string) => void;
   pushUndo: (id: string, content: string) => void;
@@ -287,30 +288,38 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       clearTimeout(state.sessionSaveTimer);
     }
     const timer = setTimeout(async () => {
-      const current = get();
-      try {
-        await invoke('save_session', {
-          session: {
-            tabs: current.tabs.map((t) => ({
-              id: t.id,
-              title: t.title,
-              file_path: t.filePath,
-              content: t.content,
-              is_dirty: t.isDirty,
-              encoding: t.encoding,
-              line_ending: t.lineEnding,
-              cursor_line: t.cursorLine,
-              cursor_col: t.cursorCol,
-              scroll_top: t.scrollTop,
-            })),
-            active_tab_id: current.activeTabId,
-          },
-        });
-      } catch (err) {
-        console.error('Failed to save session:', err);
-      }
+      await get().saveSessionNow();
     }, 500);
     set({ sessionSaveTimer: timer });
+  },
+
+  saveSessionNow: async () => {
+    const current = get();
+    if (current.sessionSaveTimer) {
+      clearTimeout(current.sessionSaveTimer);
+      set({ sessionSaveTimer: null });
+    }
+    try {
+      await invoke('save_session', {
+        session: {
+          tabs: current.tabs.map((t) => ({
+            id: t.id,
+            title: t.title,
+            file_path: t.filePath,
+            content: t.content,
+            is_dirty: t.isDirty,
+            encoding: t.encoding,
+            line_ending: t.lineEnding,
+            cursor_line: t.cursorLine,
+            cursor_col: t.cursorCol,
+            scroll_top: t.scrollTop,
+          })),
+          active_tab_id: current.activeTabId,
+        },
+      });
+    } catch (err) {
+      console.error('Failed to save session immediately:', err);
+    }
   },
 
   loadSession: async () => {
@@ -349,18 +358,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           })),
           activeTabId: session.active_tab_id,
         });
-      } else {
-        const state = get();
-        if (state.tabs.length > 0 && !state.activeTabId) {
-          set({ activeTabId: state.tabs[0].id });
-        }
+        return true;
       }
+      return false;
     } catch (err) {
       console.error('Failed to load session:', err);
-      const state = get();
-      if (state.tabs.length > 0 && !state.activeTabId) {
-        set({ activeTabId: state.tabs[0].id });
-      }
+      return false;
     }
   },
 
