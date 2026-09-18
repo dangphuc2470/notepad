@@ -640,12 +640,12 @@ export const TabBar: React.FC = () => {
         setContextMenu({ id, x: e.clientX, y: e.clientY });
     };
 
-    const executeClose = (idToClose: string) => {
+    const executeClose = (idToClose: string, options?: { discard?: boolean }) => {
         const currentTabs = useEditorStore.getState().tabs;
         const currentActiveId = useEditorStore.getState().activeTabId;
         const { reduceMotion } = useSettingsStore.getState();
         if (currentTabs.length <= 1 || reduceMotion) {
-            closeTab(idToClose);
+            closeTab(idToClose, options);
             return;
         }
 
@@ -661,7 +661,7 @@ export const TabBar: React.FC = () => {
 
         setClosingTabIds(prev => new Set(prev).add(idToClose));
         setTimeout(() => {
-            closeTab(idToClose);
+            closeTab(idToClose, options);
             setClosingTabIds(prev => {
                 const next = new Set(prev);
                 next.delete(idToClose);
@@ -687,7 +687,7 @@ export const TabBar: React.FC = () => {
                     executeClose(id);
                 }
             } else if (action === 'dont_save') {
-                executeClose(id);
+                executeClose(id, { discard: true });
             }
         } else {
             executeClose(id);
