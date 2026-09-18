@@ -62,9 +62,71 @@ fn prompt_save_dialog(
     }
 }
 
+use serde::{Deserialize, Serialize};
+
+const MIN_WINDOW_WIDTH: f64 = 450.0;
+const MIN_WINDOW_HEIGHT: f64 = 320.0;
+
+#[derive(Serialize, Deserialize)]
+struct SavedWindowSize {
+    width: f64,
+    height: f64,
+}
+
+fn window_size_path(window: &tauri::Window) -> Option<std::path::PathBuf> {
+    use tauri::Manager;
+    let mut path = window.app_handle().path().app_config_dir().ok()?;
+    path.push(".window-size.json");
+    Some(path)
+}
+
+fn logical_inner_size(window: &tauri::Window) -> Option<(f64, f64)> {
+    let physical = window.inner_size().ok()?;
+    let scale = window.scale_factor().unwrap_or(1.0);
+    if scale <= 0.0 {
+        return None;
+    }
+    Some((physical.width as f64 / scale, physical.height as f64 / scale))
+}
+
+fn save_logical_window_size(window: &tauri::Window) {
+    let Some((width, height)) = logical_inner_size(window) else {
+        return;
+    };
+    if width < MIN_WINDOW_WIDTH || height < MIN_WINDOW_HEIGHT {
+        return;
+    }
+    let Some(path) = window_size_path(window) else {
+        return;
+    };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let data = SavedWindowSize { width, height };
+    if let Ok(json) = serde_json::to_string_pretty(&data) {
+        let _ = std::fs::write(path, json);
+    }
+}
+
+fn restore_logical_window_size(window: &tauri::Window) {
+    let Some(path) = window_size_path(window) else {
+        return;
+    };
+    let Ok(json) = std::fs::read_to_string(path) else {
+        return;
+    };
+    let Ok(saved) = serde_json::from_str::<SavedWindowSize>(&json) else {
+        return;
+    };
+    let width = saved.width.max(MIN_WINDOW_WIDTH);
+    let height = saved.height.max(MIN_WINDOW_HEIGHT);
+    let _ = window.set_size(tauri::LogicalSize::new(width, height));
+}
+
 #[tauri::command]
 fn exit_app(window: tauri::Window) {
     use tauri::Manager;
+    save_logical_window_size(&window);
     let app = window.app_handle();
     let remaining: Vec<_> = app.webview_windows().into_iter().filter(|(k, _)| k != "tab-drag-ghost").collect();
     if remaining.len() <= 1 {
@@ -80,6 +142,7 @@ fn exit_app(window: tauri::Window) {
 /// on a transparent background.
 #[tauri::command]
 fn show_window_with_fade(window: tauri::Window, reduce_motion: Option<bool>) {
+    restore_logical_window_size(&window);
     #[cfg(target_os = "macos")]
     {
         if reduce_motion.unwrap_or(false) {
@@ -147,6 +210,7 @@ fn fade_close_window(window: tauri::Window, reduce_motion: Option<bool>) {
             .filter(|(k, _)| k != "tab-drag-ghost")
             .count();
         let is_last = remaining_count <= 1;
+        save_logical_window_size(&window);
 
         if reduce_motion.unwrap_or(false) {
             if is_last {
@@ -207,11 +271,93 @@ fn fade_close_window(window: tauri::Window, reduce_motion: Option<bool>) {
     #[cfg(not(target_os = "macos"))]
     {
         use tauri::Manager;
+        save_logical_window_size(&window);
         let app = window.app_handle();
         let remaining = app.webview_windows().into_iter()
             .filter(|(k, _)| k != "tab-drag-ghost")
             .count();
         if remaining <= 1 { app.exit(0); } else { let _ = window.destroy(); }
+    }
+}
+
+#[cfg(target_os = "macos")]
+static mut ORIG_TITLEBAR_LAYOUT: Option<unsafe extern "C" fn(*mut objc2::runtime::AnyObject, *const std::ffi::c_void)> = None;
+
+#[cfg(target_os = "macos")]
+static HOOK_INSTALLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(target_os = "macos")]
+unsafe extern "C" fn custom_titlebar_layout(this: *mut objc2::runtime::AnyObject, cmd: *const std::ffi::c_void) {
+    if let Some(orig) = ORIG_TITLEBAR_LAYOUT {
+        orig(this, cmd);
+    }
+
+    use objc2::msg_send;
+    use objc2_foundation::{NSPoint, NSRect};
+
+    if this.is_null() {
+        return;
+    }
+    let sv_frame: NSRect = msg_send![this, frame];
+    let ns_win: *mut objc2::runtime::AnyObject = msg_send![this, window];
+    if ns_win.is_null() {
+        return;
+    }
+
+    for (i, btn_type) in [0usize, 1, 2].iter().enumerate() {
+        let btn: *mut objc2::runtime::AnyObject = msg_send![ns_win, standardWindowButton: *btn_type];
+        if !btn.is_null() {
+            let btn_frame: NSRect = msg_send![btn, frame];
+            let x = 16.0 + (i as f64) * 20.0;
+            let y = sv_frame.size.height - 15.0 - btn_frame.size.height;
+            let origin = NSPoint::new(x, y);
+            let _: () = msg_send![btn, setFrameOrigin: origin];
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn setup_traffic_lights_hook(window: &tauri::Window) {
+    if let Ok(ns_window_ptr) = window.ns_window() {
+        use objc2::msg_send;
+
+        unsafe {
+            let ns_win: *mut objc2::runtime::AnyObject = ns_window_ptr as _;
+            if ns_win.is_null() {
+                return;
+            }
+
+            let btn: *mut objc2::runtime::AnyObject = msg_send![ns_win, standardWindowButton: 0usize];
+            if btn.is_null() {
+                return;
+            }
+
+            let superview: *mut objc2::runtime::AnyObject = msg_send![btn, superview];
+            if superview.is_null() {
+                return;
+            }
+
+            if !HOOK_INSTALLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+                extern "C" {
+                    fn object_getClass(obj: *mut objc2::runtime::AnyObject) -> *const std::ffi::c_void;
+                    fn class_getInstanceMethod(cls: *const std::ffi::c_void, name: *const std::ffi::c_void) -> *mut std::ffi::c_void;
+                    fn method_getImplementation(m: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+                    fn method_setImplementation(m: *mut std::ffi::c_void, imp: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+                    fn sel_registerName(str: *const std::ffi::c_char) -> *const std::ffi::c_void;
+                }
+
+                let cls = object_getClass(superview);
+                let sel = sel_registerName(b"layout\0".as_ptr() as _);
+                let method = class_getInstanceMethod(cls, sel);
+                if !method.is_null() {
+                    let orig_imp = method_getImplementation(method);
+                    ORIG_TITLEBAR_LAYOUT = Some(std::mem::transmute(orig_imp));
+                    method_setImplementation(method, custom_titlebar_layout as _);
+                }
+            }
+
+            adjust_traffic_lights(window);
+        }
     }
 }
 
@@ -478,7 +624,7 @@ fn detach_tab(app: tauri::AppHandle, tab_json: String, x: Option<f64>, y: Option
         }
         let w = win.as_ref().window().clone();
         win.run_on_main_thread(move || {
-            adjust_traffic_lights(&w);
+            setup_traffic_lights_hook(&w);
         }).ok();
     }
     
@@ -771,7 +917,14 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(
             tauri_plugin_window_state::Builder::default()
-                .with_state_flags(tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::VISIBLE)
+                // Size is saved separately as logical points. The plugin stores
+                // inner_size() physical pixels and restores them with set_size(),
+                // which on Retina macOS halves/doubles the window every launch.
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::POSITION
+                        | tauri_plugin_window_state::StateFlags::MAXIMIZED
+                        | tauri_plugin_window_state::StateFlags::FULLSCREEN,
+                )
                 .with_filter(|label| label == "main")
                 .build(),
         )
@@ -817,7 +970,8 @@ pub fn run() {
                     }
                     let w = win.as_ref().window().clone();
                     win.run_on_main_thread(move || {
-                        adjust_traffic_lights(&w);
+                        setup_traffic_lights_hook(&w);
+                        restore_logical_window_size(&w);
                     }).ok();
                 }
 
