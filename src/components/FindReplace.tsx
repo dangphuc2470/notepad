@@ -9,6 +9,15 @@ function getDocText(fallback?: string): string {
     return editorView ? editorView.state.doc.toString() : fallback || '';
 }
 
+/** Escape regex metacharacters, but keep query "\\n" as a real newline match. */
+function buildSearchPattern(searchTerm: string, wholeWord: boolean): string {
+    const pattern = searchTerm
+        .split('\\n')
+        .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('\\n');
+    return wholeWord ? `\\b${pattern}\\b` : pattern;
+}
+
 export const FindReplace: React.FC = () => {
     const { showFindReplace, findReplaceMode, findQuerySeed, openFindNonce, closeFindReplace, reduceMotion } = useSettingsStore();
     const activeTab = useEditorStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
@@ -39,11 +48,7 @@ export const FindReplace: React.FC = () => {
         const content = getDocText(activeTab?.content);
         if (!content) return [];
         const flags = matchCase ? 'g' : 'gi';
-        let pattern = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\n/g, '\\\\n');
-        if (wholeWord) {
-            pattern = `\\b${pattern}\\b`;
-        }
-        const regex = new RegExp(pattern, flags);
+        const regex = new RegExp(buildSearchPattern(searchTerm, wholeWord), flags);
         const matches: Array<{ index: number; length: number }> = [];
         let match;
         while ((match = regex.exec(content)) !== null) {
@@ -90,11 +95,7 @@ export const FindReplace: React.FC = () => {
         if (totalMatches === 0) return;
         const content = getDocText(activeTab?.content);
         const flags = matchCase ? 'g' : 'gi';
-        let pattern = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\n/g, '\\\\n');
-        if (wholeWord) {
-            pattern = `\\b${pattern}\\b`;
-        }
-        const regex = new RegExp(pattern, flags);
+        const regex = new RegExp(buildSearchPattern(searchTerm, wholeWord), flags);
         notepadSetText(content.replace(regex, replaceTerm));
         useEditorStore.getState().flushPendingContent();
     };
