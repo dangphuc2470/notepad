@@ -163,6 +163,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   reopenClosedTab: () => {
+    get().flushPendingContent();
     const state = get();
     if (state.closedTabsHistory.length === 0) return;
     const lastTab = state.closedTabsHistory[state.closedTabsHistory.length - 1];
@@ -421,6 +422,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   detachTab: async (id, screenX, screenY) => {
+    get().flushPendingContent();
     const state = get();
     const tab = state.tabs.find((t) => t.id === id);
     if (!tab) return;
@@ -453,6 +455,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   openFileInTab: (fileData) => {
+    get().flushPendingContent();
     const state = get();
     // 1. If file is already open in an existing tab, just focus it
     const existing = state.tabs.find((t) => t.filePath === fileData.filePath);

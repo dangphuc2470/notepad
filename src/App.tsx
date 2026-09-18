@@ -63,7 +63,6 @@ function GhostTabPreview() {
 
 function App() {
   const isGhost = typeof window !== 'undefined' && window.location.search.includes('ghost=true');
-  const showFindReplace = useSettingsStore((s) => s.showFindReplace);
   useKeyboardShortcuts();
   useTheme();
 
@@ -293,7 +292,7 @@ function App() {
     <div className="app">
       <TabBar />
       <MenuBar />
-      {showFindReplace && <FindReplace />}
+      <FindReplace />
       <Editor />
       <StatusBar />
       <Settings />

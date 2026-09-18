@@ -867,6 +867,7 @@ export const TabBar: React.FC = () => {
                         onClick={() => {
                             const idToDetach = contextMenu.id;
                             setContextMenu(null);
+                            useEditorStore.getState().flushPendingContent();
                             const currentTabs = useEditorStore.getState().tabs;
                             if (currentTabs.length > 1) {
                                 const tab = currentTabs.find(t => t.id === idToDetach);

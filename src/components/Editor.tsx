@@ -59,6 +59,7 @@ export const Editor: React.FC = () => {
     const skipNextTabEffectRef = useRef(true);
     const tabStatesRef = useRef(new Map<string, EditorState>());
     const lastCursorRef = useRef({ line: 1, col: 1 });
+    const displayedTabIdRef = useRef<string | null>(null);
 
     const activeTabId = useEditorStore((s) => s.activeTabId);
     const activeTab = useEditorStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
@@ -70,8 +71,6 @@ export const Editor: React.FC = () => {
 
     const { wordWrap, zoom, fontFamily, fontSize, autoSave } = useSettingsStore();
 
-    const activeTabRef = useRef(activeTab);
-    activeTabRef.current = activeTab;
     const markTabDirtyRef = useRef(markTabDirty);
     markTabDirtyRef.current = markTabDirty;
     const updateContentRef = useRef(updateContent);
@@ -87,8 +86,8 @@ export const Editor: React.FC = () => {
         }
         cursorRafRef.current = requestAnimationFrame(() => {
             cursorRafRef.current = null;
-            const tab = activeTabRef.current;
-            if (!tab) return;
+            const tabId = displayedTabIdRef.current;
+            if (!tabId) return;
             const pos = view.state.selection.main.head;
             const line = view.state.doc.lineAt(pos);
             const col = pos - line.from + 1;
@@ -96,7 +95,7 @@ export const Editor: React.FC = () => {
                 return;
             }
             lastCursorRef.current = { line: line.number, col };
-            updateCursorRef.current(tab.id, line.number, col);
+            updateCursorRef.current(tabId, line.number, col);
         });
     }, []);
 
@@ -106,12 +105,12 @@ export const Editor: React.FC = () => {
             contentSyncTimerRef.current = null;
         }
         const view = viewRef.current;
-        const tab = activeTabRef.current;
-        if (!pendingDirtyRef.current || !view || !tab) return;
+        const tabId = displayedTabIdRef.current;
+        if (!pendingDirtyRef.current || !view || !tabId) return;
         pendingDirtyRef.current = false;
         const val = view.state.doc.toString();
         lastSyncedContentRef.current = val;
-        updateContentRef.current(tab.id, val);
+        updateContentRef.current(tabId, val);
     }, []);
 
     const onUpdateRef = useRef((_update: ViewUpdate) => {});
@@ -122,9 +121,12 @@ export const Editor: React.FC = () => {
         }
         if (update.docChanged) {
             pendingDirtyRef.current = true;
-            const tab = activeTabRef.current;
-            if (tab && !tab.isDirty) {
-                markTabDirtyRef.current(tab.id);
+            const tabId = displayedTabIdRef.current;
+            if (tabId) {
+                const tab = useEditorStore.getState().tabs.find((t) => t.id === tabId);
+                if (tab && !tab.isDirty) {
+                    markTabDirtyRef.current(tabId);
+                }
             }
             if (contentSyncTimerRef.current) {
                 clearTimeout(contentSyncTimerRef.current);
@@ -169,8 +171,6 @@ export const Editor: React.FC = () => {
         return registerFlushContent(flushPendingContent);
     }, [registerFlushContent, flushPendingContent]);
 
-    const prevTabIdRef = useRef<string | null>(null);
-
     const applyEditorSettings = useCallback((view: EditorView) => {
         const settings = useSettingsStore.getState();
         const scaled = (settings.fontSize * settings.zoom) / 100;
@@ -200,14 +200,15 @@ export const Editor: React.FC = () => {
         });
         view.scrollDOM.scrollTop = tab?.scrollTop ?? 0;
         viewRef.current = view;
+        displayedTabIdRef.current = tab?.id ?? null;
         setNotepadView(view);
         view.focus();
         updateCursorPosition(view);
 
         const onScroll = () => {
-            const current = activeTabRef.current;
-            if (current) {
-                updateScrollTopRef.current(current.id, view.scrollDOM.scrollTop);
+            const tabId = displayedTabIdRef.current;
+            if (tabId) {
+                updateScrollTopRef.current(tabId, view.scrollDOM.scrollTop);
             }
         };
         view.scrollDOM.addEventListener('scroll', onScroll, { passive: true });
@@ -234,7 +235,7 @@ export const Editor: React.FC = () => {
         const view = viewRef.current;
         if (!view) return;
 
-        const prevId = prevTabIdRef.current;
+        const prevId = displayedTabIdRef.current;
         if (prevId && prevId !== activeTabId) {
             flushPendingContent();
             tabStatesRef.current.set(prevId, view.state);
@@ -253,7 +254,7 @@ export const Editor: React.FC = () => {
 
         if (skipNextTabEffectRef.current) {
             skipNextTabEffectRef.current = false;
-            prevTabIdRef.current = activeTabId;
+            displayedTabIdRef.current = activeTabId;
             return;
         }
 
@@ -277,7 +278,7 @@ export const Editor: React.FC = () => {
         view.focus();
         updateCursorPosition(view);
         applyingExternalRef.current = false;
-        prevTabIdRef.current = activeTabId;
+        displayedTabIdRef.current = activeTabId;
     }, [activeTabId, applyEditorSettings, buildExtensions, flushPendingContent, updateCursorPosition]);
 
     useEffect(() => {
