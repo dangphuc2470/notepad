@@ -10,7 +10,7 @@ function getDocText(fallback?: string): string {
 }
 
 export const FindReplace: React.FC = () => {
-    const { showFindReplace, findReplaceMode, closeFindReplace } = useSettingsStore();
+    const { showFindReplace, findReplaceMode, findQuerySeed, openFindNonce, closeFindReplace, reduceMotion } = useSettingsStore();
     const activeTab = useEditorStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -23,11 +23,16 @@ export const FindReplace: React.FC = () => {
     const findInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (showFindReplace && findInputRef.current) {
-            findInputRef.current.focus();
-            findInputRef.current.select();
+        if (!showFindReplace) return;
+        if (findQuerySeed) {
+            setSearchTerm(findQuerySeed);
         }
-    }, [showFindReplace, findReplaceMode]);
+        const input = findInputRef.current;
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    }, [showFindReplace, findReplaceMode, findQuerySeed, openFindNonce]);
 
     const findMatches = useCallback((): number[] => {
         if (!searchTerm) return [];
@@ -103,10 +108,15 @@ export const FindReplace: React.FC = () => {
         }
     };
 
-    if (!showFindReplace) return null;
+    if (!showFindReplace && reduceMotion) return null;
 
     return (
-        <div className="find-replace-bar" onKeyDown={handleKeyDown}>
+        <div
+            className={`find-replace-slot${showFindReplace ? ' is-open' : ''}${reduceMotion ? ' reduce-motion' : ''}`}
+            aria-hidden={!showFindReplace}
+        >
+            <div className="find-replace-slot-inner">
+                <div className="find-replace-bar" onKeyDown={handleKeyDown}>
             <div className="find-row">
                 <div className="find-input-group">
                     <input
@@ -116,6 +126,7 @@ export const FindReplace: React.FC = () => {
                         placeholder="Find"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        tabIndex={showFindReplace ? 0 : -1}
                     />
                     <span className="match-count">
                         {searchTerm ? `${totalMatches > 0 ? currentMatch + 1 : 0} of ${totalMatches}` : 'No results'}
@@ -158,6 +169,7 @@ export const FindReplace: React.FC = () => {
                             placeholder="Replace"
                             value={replaceTerm}
                             onChange={(e) => setReplaceTerm(e.target.value)}
+                            tabIndex={showFindReplace ? 0 : -1}
                         />
                     </div>
                     <div className="find-actions">
@@ -170,6 +182,8 @@ export const FindReplace: React.FC = () => {
                     </div>
                 </div>
             )}
+                </div>
+            </div>
         </div>
     );
 };

@@ -83,6 +83,15 @@ export function notepadDeleteSelection() {
     }
 }
 
+export function notepadGetSelectedText(): string {
+    if (!view) return '';
+    const { from, to } = view.state.selection.main;
+    if (from === to) return '';
+    const text = view.state.sliceDoc(from, to);
+    const newline = text.search(/\r?\n/);
+    return newline === -1 ? text : text.slice(0, newline);
+}
+
 export async function notepadExecClipboard(command: 'cut' | 'copy' | 'paste') {
     if (!view) return;
     const editor = view;

@@ -9,6 +9,8 @@ interface SettingsState {
     fontSize: number;
     showFindReplace: boolean;
     findReplaceMode: 'find' | 'replace';
+    findQuerySeed: string | null;
+    openFindNonce: number;
     reduceMotion: boolean;
     autoSave: boolean;
     whenOpening: 'resume' | 'new_window';
@@ -25,7 +27,7 @@ interface SettingsState {
     toggleStatusBar: () => void;
     setFontFamily: (font: string) => void;
     setFontSize: (size: number) => void;
-    toggleFindReplace: (mode?: 'find' | 'replace') => void;
+    toggleFindReplace: (mode?: 'find' | 'replace', seed?: string) => void;
     closeFindReplace: () => void;
     isSettingsOpen: boolean;
     toggleSettings: () => void;
@@ -40,6 +42,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     fontSize: 14,
     showFindReplace: false,
     findReplaceMode: 'find',
+    findQuerySeed: null,
+    openFindNonce: 0,
     reduceMotion: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_reducemotion') === 'true' : false,
     autoSave: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_autosave') === 'true' : false,
     whenOpening: typeof localStorage !== 'undefined' ? ((localStorage.getItem('notepad_when_opening') as 'resume' | 'new_window') || 'resume') : 'resume',
@@ -76,13 +80,13 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     toggleStatusBar: () => set((s) => ({ showStatusBar: !s.showStatusBar })),
     setFontFamily: (fontFamily) => set({ fontFamily }),
     setFontSize: (fontSize) => set({ fontSize: Math.max(8, Math.min(72, fontSize)) }),
-    toggleFindReplace: (mode) =>
-        set((s) => {
-            if (s.showFindReplace && s.findReplaceMode === (mode || 'find')) {
-                return { showFindReplace: false };
-            }
-            return { showFindReplace: true, findReplaceMode: mode || 'find' };
-        }),
+    toggleFindReplace: (mode, seed) =>
+        set((s) => ({
+            showFindReplace: true,
+            findReplaceMode: mode || 'find',
+            findQuerySeed: seed || null,
+            openFindNonce: s.openFindNonce + 1,
+        })),
     closeFindReplace: () => set({ showFindReplace: false }),
     toggleSettings: () => set((s) => ({ isSettingsOpen: !s.isSettingsOpen })),
 }));

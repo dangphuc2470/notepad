@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from '../hooks/useFileOperations';
-import { notepadDeleteSelection, notepadExecClipboard, notepadInsertText, notepadRedo, notepadSelectAll, notepadUndo } from '../editor/notepadEditor';
+import { notepadDeleteSelection, notepadExecClipboard, notepadGetSelectedText, notepadInsertText, notepadRedo, notepadSelectAll, notepadUndo } from '../editor/notepadEditor';
 import './MenuBar.css';
 
 // Lucide Icons (inline SVG components)
@@ -157,8 +157,8 @@ export const MenuBar: React.FC = () => {
         { label: 'Paste', shortcut: '⌘V', icon: <IconClipboard />, action: () => { setOpenMenu(null); void notepadExecClipboard('paste'); } },
         { label: 'Delete', icon: <IconTrash />, action: () => { setOpenMenu(null); notepadDeleteSelection(); } },
         { label: '', divider: true },
-        { label: 'Find...', shortcut: '⌘F', icon: <IconSearch />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('find'); } },
-        { label: 'Replace...', shortcut: '⌘H', icon: <IconReplace />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('replace'); } },
+        { label: 'Find...', shortcut: '⌘F', icon: <IconSearch />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('find', notepadGetSelectedText() || undefined); } },
+        { label: 'Replace...', shortcut: '⌘H', icon: <IconReplace />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('replace', notepadGetSelectedText() || undefined); } },
         { label: '', divider: true },
         { label: 'Select All', shortcut: '⌘A', icon: <IconSelectAll />, action: () => { setOpenMenu(null); notepadSelectAll(); } },
         { label: 'Time/Date', shortcut: 'F5', icon: <IconClock />, action: handleInsertDateTime },
