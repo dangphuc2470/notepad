@@ -9,12 +9,21 @@ function getDocText(fallback?: string): string {
     return editorView ? editorView.state.doc.toString() : fallback || '';
 }
 
-/** Escape regex metacharacters, but keep query "\\n" as a real newline match. */
+/** Decode find-box escapes (\\n, \\r, \\t, \\\\) then escape for RegExp. */
 function buildSearchPattern(searchTerm: string, wholeWord: boolean): string {
-    const pattern = searchTerm
-        .split('\\n')
-        .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-        .join('\\n');
+    let literal = '';
+    for (let i = 0; i < searchTerm.length; i++) {
+        if (searchTerm[i] === '\\' && i + 1 < searchTerm.length) {
+            const next = searchTerm[++i];
+            if (next === 'n') literal += '\n';
+            else if (next === 'r') literal += '\r';
+            else if (next === 't') literal += '\t';
+            else literal += next;
+        } else {
+            literal += searchTerm[i];
+        }
+    }
+    const pattern = literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return wholeWord ? `\\b${pattern}\\b` : pattern;
 }
 
