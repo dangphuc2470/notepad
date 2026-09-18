@@ -34,23 +34,23 @@ export const FindReplace: React.FC = () => {
         }
     }, [showFindReplace, findReplaceMode, findQuerySeed, openFindNonce]);
 
-    const findMatches = useCallback((): number[] => {
+    const findMatches = useCallback((): Array<{ index: number; length: number }> => {
         if (!searchTerm) return [];
         const content = getDocText(activeTab?.content);
         if (!content) return [];
         const flags = matchCase ? 'g' : 'gi';
-        let pattern = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        let pattern = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\n/g, '\\\\n');
         if (wholeWord) {
             pattern = `\\b${pattern}\\b`;
         }
         const regex = new RegExp(pattern, flags);
-        const positions: number[] = [];
+        const matches: Array<{ index: number; length: number }> = [];
         let match;
         while ((match = regex.exec(content)) !== null) {
-            positions.push(match.index);
+            matches.push({ index: match.index, length: match[0].length });
             if (match[0].length === 0) regex.lastIndex++;
         }
-        return positions;
+        return matches;
     }, [activeTab?.content, searchTerm, matchCase, wholeWord]);
 
     useEffect(() => {
@@ -72,8 +72,8 @@ export const FindReplace: React.FC = () => {
             newIndex = (currentMatch - 1 + positions.length) % positions.length;
         }
         setCurrentMatch(newIndex);
-        const pos = positions[newIndex];
-        notepadSelectRange(pos, pos + searchTerm.length);
+        const pos = positions[newIndex].index;
+        notepadSelectRange(pos, pos + positions[newIndex].length);
     };
 
     const handleReplace = () => {
@@ -82,7 +82,7 @@ export const FindReplace: React.FC = () => {
         if (positions.length === 0) return;
 
         const pos = positions[currentMatch];
-        notepadReplaceRange(pos, pos + searchTerm.length, replaceTerm);
+        notepadReplaceRange(pos.index, pos.index + pos.length, replaceTerm);
         useEditorStore.getState().flushPendingContent();
     };
 
@@ -90,7 +90,7 @@ export const FindReplace: React.FC = () => {
         if (totalMatches === 0) return;
         const content = getDocText(activeTab?.content);
         const flags = matchCase ? 'g' : 'gi';
-        let pattern = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        let pattern = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\n/g, '\\\\n');
         if (wholeWord) {
             pattern = `\\b${pattern}\\b`;
         }
