@@ -83,6 +83,20 @@ export function notepadDeleteSelection() {
     }
 }
 
+export function notepadGetSelectedText(): string {
+    if (!view) return '';
+    const { from, to } = view.state.selection.main;
+    if (from === to) return '';
+    // Escape backslashes first so literal "\n" in the doc stays "\\n" in the query,
+    // while real newlines become "\n" (VS Code-style find seed).
+    return view.state
+        .sliceDoc(from, to)
+        .replace(/\r\n/g, '\n')
+        .replace(/\\/g, '\\\\')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+}
+
 export async function notepadExecClipboard(command: 'cut' | 'copy' | 'paste') {
     if (!view) return;
     const editor = view;
