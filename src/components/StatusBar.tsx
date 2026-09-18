@@ -1,29 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import './StatusBar.css';
 
 export const StatusBar: React.FC = () => {
-    const { tabs, activeTabId } = useEditorStore();
-    const { zoom, showStatusBar } = useSettingsStore();
-    const activeTab = tabs.find((t) => t.id === activeTabId);
+    const cursor = useEditorStore((s) => s.cursorPosition);
+    const activeTab = useEditorStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
+    const zoom = useSettingsStore((s) => s.zoom);
+    const showStatusBar = useSettingsStore((s) => s.showStatusBar);
+
+    const [stats, setStats] = useState({ charCount: 0, lineCount: 1 });
+
+    useEffect(() => {
+        if (!activeTab) {
+            setStats({ charCount: 0, lineCount: 1 });
+            return;
+        }
+        const content = activeTab.content;
+        const charCount = content.length;
+        let lineCount = 1;
+        let pos = 0;
+        while ((pos = content.indexOf('\n', pos)) !== -1) {
+            lineCount++;
+            pos++;
+        }
+        setStats({ charCount, lineCount });
+    }, [activeTab?.content]);
 
     if (!showStatusBar || !activeTab) return null;
-
-    const charCount = activeTab.content.length;
-    const lineCount = activeTab.content.split('\n').length;
 
     return (
         <div className="status-bar">
             <div className="status-left">
                 <span className="status-item">
-                    Ln {activeTab.cursorLine}, Col {activeTab.cursorCol}
+                    Ln {cursor.line}, Col {cursor.col}
                 </span>
                 <span className="status-item">
-                    {charCount} characters
+                    {stats.charCount} characters
                 </span>
                 <span className="status-item">
-                    {lineCount} lines
+                    {stats.lineCount} lines
                 </span>
             </div>
             <div className="status-right">
