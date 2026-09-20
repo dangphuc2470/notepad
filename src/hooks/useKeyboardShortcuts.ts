@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from './useFileOperations';
-import { notepadInsertText, notepadIsEditorTarget, notepadRedo, notepadUndo } from '../editor/notepadEditor';
+import { notepadInsertText, notepadIsEditorTarget, notepadGetSelectedText, notepadRedo, notepadUndo } from '../editor/notepadEditor';
 
 export const useKeyboardShortcuts = () => {
     const { handleOpen, handleSave, handleSaveAs } = useFileOperations();
@@ -74,12 +74,12 @@ export const useKeyboardShortcuts = () => {
 
                 case 'f':
                     e.preventDefault();
-                    settingsStore.toggleFindReplace('find');
+                    settingsStore.toggleFindReplace('find', notepadGetSelectedText() || undefined);
                     break;
 
                 case 'h':
                     e.preventDefault();
-                    settingsStore.toggleFindReplace('replace');
+                    settingsStore.toggleFindReplace('replace', notepadGetSelectedText() || undefined);
                     break;
 
                 case 'z': {
