@@ -1,6 +1,6 @@
 [package]
 name = "notepad"
-version = "1.1.1"
+version = "1.1.2"
 description = "Windows 11 Notepad clone for macOS"
 authors = ["Arijit Deb"]
 edition = "2021"
