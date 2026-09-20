@@ -123,9 +123,9 @@ export const Settings: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* When opening */}
+                        {/* On launch */}
                         <div className="settings-row">
-                            <span className="settings-label">When opening</span>
+                            <span className="settings-label">On launch</span>
                             <div className="settings-select-wrapper">
                                 <select
                                     className="settings-select"
