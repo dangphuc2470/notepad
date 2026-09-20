@@ -29,7 +29,7 @@ interface EditorState {
   addTab: (tab?: Partial<Tab>) => void;
   addMultipleTabs: (newTabs: Tab[]) => void;
   insertTabAtIndex: (tab: Tab, index: number) => void;
-  closeTab: (id: string) => void;
+  closeTab: (id: string, options?: { discard?: boolean }) => void;
   reopenClosedTab: () => void;
   setActiveTab: (id: string) => void;
   updateContent: (id: string, content: string) => void;
@@ -132,7 +132,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     get().saveSession();
   },
 
-  closeTab: (id) => {
+  closeTab: (id, options) => {
     get().flushPendingContent();
     const state = get();
     const closingTab = state.tabs.find((t) => t.id === id);
@@ -144,11 +144,32 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     if (newTabs.length === 0) {
       const { reduceMotion } = useSettingsStore.getState();
-      if (reduceMotion) {
-        invoke('exit_app');
-      } else {
-        invoke('fade_close_window');
+      const closeApp = () => {
+        if (reduceMotion) {
+          invoke('exit_app');
+        } else {
+          invoke('fade_close_window');
+        }
+      };
+
+      if (options?.discard) {
+        // Don't Save on the last tab: replace with a blank Untitled and persist that
+        // so the window close-guard cannot re-save the discarded draft into the session.
+        const freshTab = createDefaultTab();
+        set({
+          tabs: [freshTab],
+          activeTabId: freshTab.id,
+          closedTabsHistory: newClosedHistory,
+          cursorPosition: { line: 1, col: 1 },
+        });
+        void get()
+          .saveSessionNow()
+          .catch((err) => console.error('Failed to clear discarded session:', err))
+          .finally(closeApp);
+        return;
       }
+
+      closeApp();
       return;
     } else {
       let newActive = state.activeTabId;
