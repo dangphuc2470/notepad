@@ -1,4 +1,5 @@
 mod file_ops;
+mod menu;
 mod models;
 mod session;
 
@@ -995,6 +996,8 @@ pub fn run() {
             show_window_with_fade,
         ])
         .setup(|app| {
+            menu::setup_menu(app)?;
+
             #[cfg(target_os = "macos")]
             {
                 use tauri::Manager;
@@ -1021,6 +1024,11 @@ pub fn run() {
                 accent_observer::start_listening(app.handle().clone());
             }
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            use tauri::Emitter;
+            let id = event.id().as_ref();
+            let _ = app.emit("menu-action", id);
         })
 
         .on_window_event(|window, event| {

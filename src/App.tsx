@@ -12,6 +12,7 @@ import { Settings } from './components/Settings';
 import { Tab, useEditorStore } from './stores/editorStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useNativeMenuEvents } from './hooks/useNativeMenuEvents';
 import { useTheme } from './hooks/useTheme';
 import './App.css';
 
@@ -64,6 +65,7 @@ function GhostTabPreview() {
 function App() {
   const isGhost = typeof window !== 'undefined' && window.location.search.includes('ghost=true');
   useKeyboardShortcuts();
+  useNativeMenuEvents();
   useTheme();
 
   if (isGhost) {
