@@ -87,7 +87,7 @@ export const FindReplace: React.FC = () => {
         }
         setCurrentMatch(newIndex);
         const pos = positions[newIndex].index;
-        notepadSelectRange(pos, pos + positions[newIndex].length);
+        notepadSelectRange(pos, pos + positions[newIndex].length, false);
     };
 
     const handleReplace = () => {
@@ -109,12 +109,19 @@ export const FindReplace: React.FC = () => {
         useEditorStore.getState().flushPendingContent();
     };
 
+    const handleClose = () => {
+        closeFindReplace();
+        getNotepadView()?.focus();
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape') {
-            closeFindReplace();
+            handleClose();
         } else if (e.key === 'Enter') {
             e.preventDefault();
+            e.stopPropagation();
             navigateMatch(e.shiftKey ? 'prev' : 'next');
+            findInputRef.current?.focus();
         }
     };
 
@@ -158,13 +165,27 @@ export const FindReplace: React.FC = () => {
                     >
                         W
                     </button>
-                    <button className="find-btn" onClick={() => navigateMatch('prev')} title="Previous (Shift+Enter)">
+                    <button
+                        className="find-btn"
+                        onClick={() => {
+                            navigateMatch('prev');
+                            findInputRef.current?.focus();
+                        }}
+                        title="Previous (Shift+Enter)"
+                    >
                         ↑
                     </button>
-                    <button className="find-btn" onClick={() => navigateMatch('next')} title="Next (Enter)">
+                    <button
+                        className="find-btn"
+                        onClick={() => {
+                            navigateMatch('next');
+                            findInputRef.current?.focus();
+                        }}
+                        title="Next (Enter)"
+                    >
                         ↓
                     </button>
-                    <button className="find-close" onClick={closeFindReplace} title="Close (Esc)">
+                    <button className="find-close" onClick={handleClose} title="Close (Esc)">
                         ×
                     </button>
                 </div>

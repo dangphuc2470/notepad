@@ -30,12 +30,14 @@ export function notepadInsertText(text: string) {
     view.dispatch(view.state.replaceSelection(text));
 }
 
-export function notepadSelectRange(from: number, to: number) {
+export function notepadSelectRange(from: number, to: number, focus = false) {
     if (!view) return;
     const len = view.state.doc.length;
     const a = Math.max(0, Math.min(from, len));
     const b = Math.max(0, Math.min(to, len));
-    view.focus();
+    if (focus) {
+        view.focus();
+    }
     view.dispatch({
         selection: { anchor: a, head: b },
         scrollIntoView: true,
