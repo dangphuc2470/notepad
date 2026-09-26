@@ -49,40 +49,6 @@
     gap: 6px;
 }
 
-.find-expand-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 30px;
-    border: none;
-    background: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.15s ease;
-    padding: 0;
-    flex-shrink: 0;
-}
-
-.find-expand-toggle:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.find-expand-toggle .chevron-icon {
-    transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1);
-}
-
-.find-expand-toggle.is-expanded .chevron-icon {
-    transform: rotate(90deg);
-}
-
-.replace-row-spacer {
-    width: 20px;
-    flex-shrink: 0;
-}
-
 .find-input-group {
     flex: 1;
     display: flex;
@@ -177,6 +143,11 @@
 .find-btn:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
+}
+
+.find-btn.active {
+    background: var(--bg-hover);
+    color: var(--accent-color);
 }
 
 .replace-btn {

@@ -173,28 +173,6 @@ export const FindReplace: React.FC = () => {
             <div className="find-replace-slot-inner">
                 <div className="find-replace-bar" onKeyDown={handleKeyDown}>
             <div className="find-row">
-                <button
-                    type="button"
-                    className={`find-expand-toggle ${findReplaceMode === 'replace' ? 'is-expanded' : ''}`}
-                    onClick={toggleMode}
-                    title={findReplaceMode === 'replace' ? 'Hide Replace (⌥⌘F)' : 'Show Replace (⌥⌘F)'}
-                    tabIndex={showFindReplace ? 0 : -1}
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="chevron-icon"
-                    >
-                        <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                </button>
                 <div className="find-input-group">
                     <input
                         ref={findInputRef}
@@ -245,6 +223,30 @@ export const FindReplace: React.FC = () => {
                     >
                         ↓
                     </button>
+                    <button
+                        type="button"
+                        className={`find-btn ${findReplaceMode === 'replace' ? 'active' : ''}`}
+                        onClick={toggleMode}
+                        title={findReplaceMode === 'replace' ? 'Hide Replace (⌥⌘F)' : 'Show Replace (⌥⌘F)'}
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{
+                                transform: findReplaceMode === 'replace' ? 'rotate(180deg)' : 'none',
+                                transition: 'transform 0.18s ease',
+                            }}
+                        >
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </button>
                     <button className="find-close" onClick={handleClose} title="Close (Esc)">
                         ×
                     </button>
@@ -253,7 +255,6 @@ export const FindReplace: React.FC = () => {
 
             {findReplaceMode === 'replace' && (
                 <div className="replace-row">
-                    <div className="replace-row-spacer" aria-hidden="true" />
                     <div className="find-input-group">
                         <input
                             ref={replaceInputRef}
