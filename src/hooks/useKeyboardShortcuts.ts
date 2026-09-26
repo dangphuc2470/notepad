@@ -11,6 +11,22 @@ export const useKeyboardShortcuts = () => {
         const handleKeyDown = (e: KeyboardEvent) => {
             const isMeta = e.metaKey;
             const isShift = e.shiftKey;
+            const isAlt = e.altKey;
+            const isCtrl = e.ctrlKey;
+
+            // Handle Ctrl shortcuts (e.g. Ctrl+H, Ctrl+F on Windows/Mac)
+            if (isCtrl && !isMeta) {
+                if (e.code === 'KeyH' || e.key.toLowerCase() === 'h') {
+                    e.preventDefault();
+                    useSettingsStore.getState().toggleFindReplace('replace', notepadGetSelectedText() || undefined);
+                    return;
+                }
+                if (e.code === 'KeyF' || e.key.toLowerCase() === 'f') {
+                    e.preventDefault();
+                    useSettingsStore.getState().toggleFindReplace('find', notepadGetSelectedText() || undefined);
+                    return;
+                }
+            }
 
             if (!isMeta) {
                 if (e.key === 'F5') {
@@ -24,6 +40,20 @@ export const useKeyboardShortcuts = () => {
 
             const editorStore = useEditorStore.getState();
             const settingsStore = useSettingsStore.getState();
+
+            // Handle Option+Cmd+F (standard macOS Replace) or Cmd+Shift+F
+            if ((isAlt || isShift) && (e.code === 'KeyF' || e.key === 'ƒ' || e.key.toLowerCase() === 'f')) {
+                e.preventDefault();
+                settingsStore.toggleFindReplace('replace', notepadGetSelectedText() || undefined);
+                return;
+            }
+
+            // Handle Cmd+H or Cmd+Shift+H
+            if (e.code === 'KeyH' || e.key.toLowerCase() === 'h') {
+                e.preventDefault();
+                settingsStore.toggleFindReplace('replace', notepadGetSelectedText() || undefined);
+                return;
+            }
 
             switch (e.key.toLowerCase()) {
                 case 't':

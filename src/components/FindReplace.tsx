@@ -28,7 +28,15 @@ function buildSearchPattern(searchTerm: string, wholeWord: boolean): string {
 }
 
 export const FindReplace: React.FC = () => {
-    const { showFindReplace, findReplaceMode, findQuerySeed, openFindNonce, closeFindReplace, reduceMotion } = useSettingsStore();
+    const {
+        showFindReplace,
+        findReplaceMode,
+        findQuerySeed,
+        openFindNonce,
+        closeFindReplace,
+        setFindReplaceMode,
+        reduceMotion,
+    } = useSettingsStore();
     const activeTab = useEditorStore((s) => s.tabs.find((t) => t.id === s.activeTabId));
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -39,11 +47,20 @@ export const FindReplace: React.FC = () => {
     const [totalMatches, setTotalMatches] = useState(0);
 
     const findInputRef = useRef<HTMLInputElement>(null);
+    const replaceInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!showFindReplace) return;
         if (findQuerySeed) {
             setSearchTerm(findQuerySeed);
+        }
+        if (findReplaceMode === 'replace') {
+            const rInput = replaceInputRef.current;
+            if (rInput && !findQuerySeed) {
+                rInput.focus();
+                rInput.select();
+                return;
+            }
         }
         const input = findInputRef.current;
         if (input) {
@@ -114,9 +131,30 @@ export const FindReplace: React.FC = () => {
         getNotepadView()?.focus();
     };
 
+    const toggleMode = () => {
+        const nextMode = findReplaceMode === 'replace' ? 'find' : 'replace';
+        setFindReplaceMode(nextMode);
+        if (nextMode === 'replace') {
+            requestAnimationFrame(() => {
+                replaceInputRef.current?.focus();
+                replaceInputRef.current?.select();
+            });
+        } else {
+            findInputRef.current?.focus();
+        }
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Escape') {
             handleClose();
+        } else if (
+            (e.altKey && (e.code === 'KeyF' || e.key === 'ƒ' || e.key.toLowerCase() === 'f')) ||
+            (e.ctrlKey && (e.code === 'KeyH' || e.key.toLowerCase() === 'h')) ||
+            (e.metaKey && (e.code === 'KeyH' || e.key.toLowerCase() === 'h'))
+        ) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleMode();
         } else if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
@@ -135,6 +173,28 @@ export const FindReplace: React.FC = () => {
             <div className="find-replace-slot-inner">
                 <div className="find-replace-bar" onKeyDown={handleKeyDown}>
             <div className="find-row">
+                <button
+                    type="button"
+                    className={`find-expand-toggle ${findReplaceMode === 'replace' ? 'is-expanded' : ''}`}
+                    onClick={toggleMode}
+                    title={findReplaceMode === 'replace' ? 'Hide Replace (⌥⌘F)' : 'Show Replace (⌥⌘F)'}
+                    tabIndex={showFindReplace ? 0 : -1}
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="chevron-icon"
+                    >
+                        <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                </button>
                 <div className="find-input-group">
                     <input
                         ref={findInputRef}
@@ -193,18 +253,27 @@ export const FindReplace: React.FC = () => {
 
             {findReplaceMode === 'replace' && (
                 <div className="replace-row">
+                    <div className="replace-row-spacer" aria-hidden="true" />
                     <div className="find-input-group">
                         <input
+                            ref={replaceInputRef}
                             type="text"
                             className="find-input"
                             placeholder="Replace"
                             value={replaceTerm}
                             onChange={(e) => setReplaceTerm(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleReplace();
+                                }
+                            }}
                             tabIndex={showFindReplace ? 0 : -1}
                         />
                     </div>
                     <div className="find-actions">
-                        <button className="find-btn replace-btn" onClick={handleReplace} title="Replace">
+                        <button className="find-btn replace-btn" onClick={handleReplace} title="Replace (Enter)">
                             Replace
                         </button>
                         <button className="find-btn replace-btn" onClick={handleReplaceAll} title="Replace All">

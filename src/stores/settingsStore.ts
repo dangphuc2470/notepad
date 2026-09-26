@@ -28,6 +28,7 @@ interface SettingsState {
     setFontFamily: (font: string) => void;
     setFontSize: (size: number) => void;
     toggleFindReplace: (mode?: 'find' | 'replace', seed?: string) => void;
+    setFindReplaceMode: (mode: 'find' | 'replace') => void;
     closeFindReplace: () => void;
     isSettingsOpen: boolean;
     toggleSettings: () => void;
@@ -99,6 +100,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
             findQuerySeed: seed || null,
             openFindNonce: s.openFindNonce + 1,
         })),
+    setFindReplaceMode: (mode) => set({ findReplaceMode: mode }),
     closeFindReplace: () => set({ showFindReplace: false }),
     toggleSettings: () => set((s) => ({ isSettingsOpen: !s.isSettingsOpen })),
 }));

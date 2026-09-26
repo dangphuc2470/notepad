@@ -165,7 +165,7 @@ export const MenuBar: React.FC = () => {
         { label: 'Delete', icon: <IconTrash />, action: () => { setOpenMenu(null); notepadDeleteSelection(); } },
         { label: '', divider: true },
         { label: 'Find...', shortcut: '⌘F', icon: <IconSearch />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('find', notepadGetSelectedText() || undefined); } },
-        { label: 'Replace...', shortcut: '⌘H', icon: <IconReplace />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('replace', notepadGetSelectedText() || undefined); } },
+        { label: 'Replace...', shortcut: '⌥⌘F', icon: <IconReplace />, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleFindReplace('replace', notepadGetSelectedText() || undefined); } },
         { label: '', divider: true },
         { label: 'Select All', shortcut: '⌘A', icon: <IconSelectAll />, action: () => { setOpenMenu(null); notepadSelectAll(); } },
         { label: 'Time/Date', shortcut: 'F5', icon: <IconClock />, action: handleInsertDateTime },
