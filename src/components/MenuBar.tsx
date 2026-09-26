@@ -3,6 +3,8 @@ import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from '../hooks/useFileOperations';
 import { notepadDeleteSelection, notepadExecClipboard, notepadGetSelectedText, notepadInsertText, notepadRedo, notepadSelectAll, notepadUndo } from '../editor/notepadEditor';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { APP_VERSION } from '../version';
 import './MenuBar.css';
 
 // Lucide Icons (inline SVG components)
@@ -72,12 +74,17 @@ const IconPanelBottom = () => (
 const IconCheck = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
 );
-
 const IconExternalLink = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
 );
+const IconRefresh = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 21h5v-5" /></svg>
+);
+const IconInfo = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+);
 
-type MenuId = 'file' | 'edit' | 'view' | null;
+type MenuId = 'file' | 'edit' | 'view' | 'help' | null;
 
 interface MenuItem {
     label: string;
@@ -173,10 +180,31 @@ export const MenuBar: React.FC = () => {
         { label: 'Status Bar', icon: <IconPanelBottom />, toggle: true, checked: showStatusBar, action: () => { setOpenMenu(null); useSettingsStore.getState().toggleStatusBar(); } },
     ];
 
+    const helpMenu: MenuItem[] = [
+        {
+            label: 'Check for Updates...',
+            icon: <IconRefresh />,
+            action: () => {
+                setOpenMenu(null);
+                openUrl('https://github.com/dangphuc2470/notepad/releases/latest').catch(console.error);
+            },
+        },
+        { label: '', divider: true },
+        {
+            label: `About Notepad (v${APP_VERSION})`,
+            icon: <IconInfo />,
+            action: () => {
+                setOpenMenu(null);
+                useSettingsStore.getState().toggleSettings();
+            },
+        },
+    ];
+
     const menus: { id: MenuId; label: string; items: MenuItem[] }[] = [
         { id: 'file', label: 'File', items: fileMenu },
         { id: 'edit', label: 'Edit', items: editMenu },
         { id: 'view', label: 'View', items: viewMenu },
+        { id: 'help', label: 'Help', items: helpMenu },
     ];
 
     return (

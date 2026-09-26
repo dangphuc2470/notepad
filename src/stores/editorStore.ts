@@ -132,7 +132,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     get().saveSession();
   },
 
-  closeTab: (id, options) => {
+  closeTab: (id, _options) => {
     get().flushPendingContent();
     const state = get();
     const closingTab = state.tabs.find((t) => t.id === id);
@@ -143,6 +143,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newClosedHistory = [...state.closedTabsHistory.slice(-29), closingTab];
 
     if (newTabs.length === 0) {
+      if (state.sessionSaveTimer) {
+        clearTimeout(state.sessionSaveTimer);
+        set({ sessionSaveTimer: null });
+      }
+
       const { reduceMotion } = useSettingsStore.getState();
       const closeApp = () => {
         if (reduceMotion) {
@@ -152,24 +157,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
       };
 
-      if (options?.discard) {
-        // Don't Save on the last tab: replace with a blank Untitled and persist that
-        // so the window close-guard cannot re-save the discarded draft into the session.
-        const freshTab = createDefaultTab();
-        set({
-          tabs: [freshTab],
-          activeTabId: freshTab.id,
-          closedTabsHistory: newClosedHistory,
-          cursorPosition: { line: 1, col: 1 },
-        });
-        void get()
-          .saveSessionNow()
-          .catch((err) => console.error('Failed to clear discarded session:', err))
-          .finally(closeApp);
-        return;
-      }
-
-      closeApp();
+      (async () => {
+        try {
+          const isLast = await invoke<boolean>('is_last_window');
+          if (isLast) {
+            // When user explicitly closes the last tab (via tab 'x' button or Cmd+W),
+            // clear the saved session so that the next launch opens with a fresh Untitled tab
+            // rather than resurrecting the tab that was intentionally closed.
+            await invoke('clear_session');
+          }
+        } catch (err) {
+          console.error('Failed to clear session on closing last tab:', err);
+        } finally {
+          closeApp();
+        }
+      })();
       return;
     } else {
       let newActive = state.activeTabId;

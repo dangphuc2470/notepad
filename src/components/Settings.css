@@ -311,6 +311,19 @@
     color: var(--text-secondary);
 }
 
+.settings-check-update-link {
+    font-size: 10.5px;
+    color: var(--accent-color, #0078d4);
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.settings-check-update-link:hover {
+    text-decoration: underline;
+    opacity: 0.85;
+}
+
 .settings-fork-desc {
     font-size: 10.5px;
     color: var(--text-secondary);

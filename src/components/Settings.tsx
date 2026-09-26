@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settingsStore';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { APP_VERSION } from '../version';
 import './Settings.css';
 
 const IconGithub = () => (
@@ -231,7 +232,15 @@ export const Settings: React.FC = () => {
                         <div className="settings-about-text">
                             <div className="settings-app-header">
                                 <span className="settings-app-name">Notepad</span>
-                                <span className="settings-app-version">v1.1.1</span>
+                                <span className="settings-app-version">v{APP_VERSION}</span>
+                                <a
+                                    href="https://github.com/dangphuc2470/notepad/releases/latest"
+                                    onClick={(e) => handleOpenLink(e, "https://github.com/dangphuc2470/notepad/releases/latest")}
+                                    className="settings-check-update-link"
+                                    title="Check for updates on GitHub"
+                                >
+                                    • Check for updates
+                                </a>
                             </div>
                             <span className="settings-fork-desc">
                                 Forked from <a href="https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac" onClick={(e) => handleOpenLink(e, "https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac")} className="settings-fork-link">Arijit</a>
