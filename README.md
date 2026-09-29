@@ -9,8 +9,8 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/dangphuc2470/notepad/releases/download/app-v1.1.3/Notepad_1.1.3_aarch64.dmg"><img src="https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3%2FM4)-blue?style=for-the-badge&logo=apple" alt="Download Apple Silicon" /></a>
-  <a href="https://github.com/dangphuc2470/notepad/releases/download/app-v1.1.3/Notepad_1.1.3_x64.dmg"><img src="https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple" alt="Download Intel" /></a>
+  <a href="https://github.com/dangphuc2470/notepad/releases/download/app-v1.1.4/Notepad_1.1.4_aarch64.dmg"><img src="https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3%2FM4)-blue?style=for-the-badge&logo=apple" alt="Download Apple Silicon" /></a>
+  <a href="https://github.com/dangphuc2470/notepad/releases/download/app-v1.1.4/Notepad_1.1.4_x64.dmg"><img src="https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple" alt="Download Intel" /></a>
 </p>
 
 <p align="center">

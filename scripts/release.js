@@ -43,7 +43,7 @@ try {
     const readmePath = path.join(rootDir, 'README.md');
     let readme = fs.readFileSync(readmePath, 'utf-8');
     // Handle replacing older .dmg with _x64.dmg or updating existing _x64.dmg
-    readme = readme.replace(/(download\/app-v)[^\/]+(\/NotepadMac_)[a-zA-Z0-9\.-]+(\.dmg)/g, (match, p1, p2, p3) => {
+    readme = readme.replace(/(download\/app-v)[^\/]+(\/Notepad(?:Mac)?_)[a-zA-Z0-9\.-]+(\.dmg)/g, (match, p1, p2, p3) => {
         if (match.includes('_aarch64')) return `${p1}${version}${p2}${version}_aarch64${p3}`;
         if (match.includes('_x64')) return `${p1}${version}${p2}${version}_x64${p3}`;
         return `${p1}${version}${p2}${version}_x64${p3}`; // fallback convert old .dmg to _x64.dmg
@@ -52,7 +52,7 @@ try {
     console.log('✅ Updated README.md');
 
     // 5. Commit and tag
-    execSync('git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml README.md scripts/release.js', { cwd: rootDir, stdio: 'inherit' });
+    execSync('git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock README.md scripts/release.js', { cwd: rootDir, stdio: 'inherit' });
     execSync(`git commit -m "chore(release): v${version}"`, { cwd: rootDir, stdio: 'inherit' });
     execSync(`git tag app-v${version}`, { cwd: rootDir, stdio: 'inherit' });
 
