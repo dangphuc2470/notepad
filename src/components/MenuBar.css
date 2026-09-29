@@ -81,7 +81,7 @@
 }
 
 .menu-item:hover {
-    background: var(--bg-menu-hover);
+    background: color-mix(in srgb, var(--accent-color) 12%, var(--bg-hover));
 }
 
 .menu-item-icon {
