@@ -24,7 +24,8 @@ export const Settings: React.FC = () => {
         wordWrap, toggleWordWrap,
         reduceMotion, toggleReduceMotion,
         autoSave, toggleAutoSave,
-        whenOpening, setWhenOpening
+        whenOpening, setWhenOpening,
+        menuBarLocation, setMenuBarLocation
     } = useSettingsStore();
 
     const [isRendered, setIsRendered] = React.useState(isSettingsOpen);
@@ -91,6 +92,11 @@ export const Settings: React.FC = () => {
         return 'Open a new window';
     };
 
+    const getMenuBarLocationLabel = (val: 'in_app' | 'status_bar') => {
+        if (val === 'status_bar') return 'In status bar (macOS)';
+        return 'In-app (Windows 11)';
+    };
+
     return (
         <div className={`settings-overlay ${isClosing ? 'is-closing' : ''}`} ref={overlayRef} onClick={handleOverlayClick}>
             <div className={`settings-modal ${isClosing ? 'is-closing' : ''}`}>
@@ -118,6 +124,25 @@ export const Settings: React.FC = () => {
                                     <option value="system">Use system setting</option>
                                 </select>
                                 <span className="settings-select-label">{getThemeLabel(theme)}</span>
+                                <span className="settings-select-chevron">
+                                    <IconDoubleChevron />
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Menu Bar Location */}
+                        <div className="settings-row">
+                            <span className="settings-label">Menu bar</span>
+                            <div className="settings-select-wrapper">
+                                <select
+                                    className="settings-select"
+                                    value={menuBarLocation}
+                                    onChange={(e) => setMenuBarLocation(e.target.value as 'in_app' | 'status_bar')}
+                                >
+                                    <option value="in_app">In-app (Windows 11)</option>
+                                    <option value="status_bar">In status bar (macOS)</option>
+                                </select>
+                                <span className="settings-select-label">{getMenuBarLocationLabel(menuBarLocation)}</span>
                                 <span className="settings-select-chevron">
                                     <IconDoubleChevron />
                                 </span>

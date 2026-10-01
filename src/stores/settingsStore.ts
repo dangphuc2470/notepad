@@ -14,9 +14,11 @@ interface SettingsState {
     reduceMotion: boolean;
     autoSave: boolean;
     whenOpening: 'resume' | 'new_window';
+    menuBarLocation: 'in_app' | 'status_bar';
 
     setTheme: (theme: 'light' | 'dark' | 'system') => void;
     setWhenOpening: (value: 'resume' | 'new_window') => void;
+    setMenuBarLocation: (location: 'in_app' | 'status_bar') => void;
     toggleWordWrap: () => void;
     toggleReduceMotion: () => void;
     toggleAutoSave: () => void;
@@ -55,6 +57,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     reduceMotion: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_reducemotion') === 'true' : false,
     autoSave: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_autosave') === 'true' : false,
     whenOpening: typeof localStorage !== 'undefined' ? ((localStorage.getItem('notepad_when_opening') as 'resume' | 'new_window') || 'resume') : 'resume',
+    menuBarLocation: typeof localStorage !== 'undefined' ? ((localStorage.getItem('notepad_menubar_location') as 'in_app' | 'status_bar') || 'in_app') : 'in_app',
     isSettingsOpen: false,
 
     setTheme: (theme) => {
@@ -68,6 +71,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
             localStorage.setItem('notepad_when_opening', whenOpening);
         }
         set({ whenOpening });
+    },
+    setMenuBarLocation: (menuBarLocation) => {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('notepad_menubar_location', menuBarLocation);
+        }
+        set({ menuBarLocation });
     },
     toggleWordWrap: () => set((s) => ({ wordWrap: !s.wordWrap })),
     toggleReduceMotion: () =>

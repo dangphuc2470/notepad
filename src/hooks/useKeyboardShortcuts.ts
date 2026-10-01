@@ -112,6 +112,11 @@ export const useKeyboardShortcuts = () => {
                     settingsStore.toggleFindReplace('replace', notepadGetSelectedText() || undefined);
                     break;
 
+                case ',':
+                    e.preventDefault();
+                    settingsStore.toggleSettings();
+                    break;
+
                 case 'z': {
                     const el = document.activeElement;
                     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {

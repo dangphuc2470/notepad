@@ -3,10 +3,10 @@ use tauri::{
         AboutMetadataBuilder, CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder,
         PredefinedMenuItem, SubmenuBuilder,
     },
-    App,
+    App, AppHandle,
 };
 
-pub fn setup_menu(app: &mut App) -> tauri::Result<()> {
+pub fn update_system_menu(app: &AppHandle, mode: &str) -> tauri::Result<()> {
     #[cfg(target_os = "macos")]
     let app_menu = SubmenuBuilder::new(app, "Notepad")
         .about(Some(
@@ -25,41 +25,6 @@ pub fn setup_menu(app: &mut App) -> tauri::Result<()> {
         .quit()
         .build()?;
 
-    let file_menu = SubmenuBuilder::new(app, "File")
-        .item(&MenuItemBuilder::with_id("new-tab", "New Tab").accelerator("CmdOrCtrl+T").build(app)?)
-        .item(&MenuItemBuilder::with_id("reopen-closed-tab", "Reopen Closed Tab").accelerator("Shift+CmdOrCtrl+T").build(app)?)
-        .item(&MenuItemBuilder::with_id("new-window", "New Window").accelerator("Shift+CmdOrCtrl+N").build(app)?)
-        .separator()
-        .item(&MenuItemBuilder::with_id("open-file", "Open...").accelerator("CmdOrCtrl+O").build(app)?)
-        .item(&MenuItemBuilder::with_id("save-file", "Save").accelerator("CmdOrCtrl+S").build(app)?)
-        .item(&MenuItemBuilder::with_id("save-as-file", "Save As...").accelerator("Shift+CmdOrCtrl+S").build(app)?)
-        .item(&CheckMenuItemBuilder::with_id("toggle-auto-save", "Auto Save").build(app)?)
-        .separator()
-        .item(&MenuItemBuilder::with_id("close-tab", "Close Tab").accelerator("CmdOrCtrl+W").build(app)?)
-        .build()?;
-
-    let edit_menu = SubmenuBuilder::new(app, "Edit")
-        .undo()
-        .redo()
-        .separator()
-        .cut()
-        .copy()
-        .paste()
-        .select_all()
-        .separator()
-        .item(&MenuItemBuilder::with_id("find", "Find...").accelerator("CmdOrCtrl+F").build(app)?)
-        .item(&MenuItemBuilder::with_id("replace", "Replace...").accelerator("Alt+CmdOrCtrl+F").build(app)?)
-        .build()?;
-
-    let view_menu = SubmenuBuilder::new(app, "View")
-        .item(&MenuItemBuilder::with_id("zoom-in", "Zoom In").accelerator("CmdOrCtrl+=").build(app)?)
-        .item(&MenuItemBuilder::with_id("zoom-out", "Zoom Out").accelerator("CmdOrCtrl+-").build(app)?)
-        .item(&MenuItemBuilder::with_id("reset-zoom", "Reset Zoom").accelerator("CmdOrCtrl+0").build(app)?)
-        .separator()
-        .item(&MenuItemBuilder::with_id("toggle-word-wrap", "Word Wrap").build(app)?)
-        .item(&MenuItemBuilder::with_id("toggle-status-bar", "Status Bar").build(app)?)
-        .build()?;
-
     let window_menu = SubmenuBuilder::new(app, "Window")
         .minimize()
         .separator()
@@ -70,30 +35,92 @@ pub fn setup_menu(app: &mut App) -> tauri::Result<()> {
         .item(&MenuItemBuilder::with_id("check-updates", "Check for Updates...").build(app)?)
         .build()?;
 
-    #[cfg(target_os = "macos")]
-    let menu = MenuBuilder::new(app)
-        .items(&[
-            &app_menu,
-            &file_menu,
-            &edit_menu,
-            &view_menu,
-            &window_menu,
-            &help_menu,
-        ])
-        .build()?;
+    if mode == "status_bar" {
+        let file_menu = SubmenuBuilder::new(app, "File")
+            .item(&MenuItemBuilder::with_id("new-tab", "New Tab").accelerator("CmdOrCtrl+T").build(app)?)
+            .item(&MenuItemBuilder::with_id("reopen-closed-tab", "Reopen Closed Tab").accelerator("Shift+CmdOrCtrl+T").build(app)?)
+            .item(&MenuItemBuilder::with_id("new-window", "New Window").accelerator("Shift+CmdOrCtrl+N").build(app)?)
+            .separator()
+            .item(&MenuItemBuilder::with_id("open-file", "Open...").accelerator("CmdOrCtrl+O").build(app)?)
+            .item(&MenuItemBuilder::with_id("save-file", "Save").accelerator("CmdOrCtrl+S").build(app)?)
+            .item(&MenuItemBuilder::with_id("save-as-file", "Save As...").accelerator("Shift+CmdOrCtrl+S").build(app)?)
+            .item(&CheckMenuItemBuilder::with_id("toggle-auto-save", "Auto Save").build(app)?)
+            .separator()
+            .item(&MenuItemBuilder::with_id("close-tab", "Close Tab").accelerator("CmdOrCtrl+W").build(app)?)
+            .build()?;
 
-    #[cfg(not(target_os = "macos"))]
-    let menu = MenuBuilder::new(app)
-        .items(&[
-            &file_menu,
-            &edit_menu,
-            &view_menu,
-            &window_menu,
-            &help_menu,
-        ])
-        .build()?;
+        let edit_menu = SubmenuBuilder::new(app, "Edit")
+            .undo()
+            .redo()
+            .separator()
+            .cut()
+            .copy()
+            .paste()
+            .select_all()
+            .separator()
+            .item(&MenuItemBuilder::with_id("find", "Find...").accelerator("CmdOrCtrl+F").build(app)?)
+            .item(&MenuItemBuilder::with_id("replace", "Replace...").accelerator("Alt+CmdOrCtrl+F").build(app)?)
+            .build()?;
 
-    app.set_menu(menu)?;
+        let view_menu = SubmenuBuilder::new(app, "View")
+            .item(&MenuItemBuilder::with_id("zoom-in", "Zoom In").accelerator("CmdOrCtrl+=").build(app)?)
+            .item(&MenuItemBuilder::with_id("zoom-out", "Zoom Out").accelerator("CmdOrCtrl+-").build(app)?)
+            .item(&MenuItemBuilder::with_id("reset-zoom", "Reset Zoom").accelerator("CmdOrCtrl+0").build(app)?)
+            .separator()
+            .item(&MenuItemBuilder::with_id("toggle-word-wrap", "Word Wrap").build(app)?)
+            .item(&MenuItemBuilder::with_id("toggle-status-bar", "Status Bar").build(app)?)
+            .build()?;
+
+        #[cfg(target_os = "macos")]
+        let menu = MenuBuilder::new(app)
+            .items(&[
+                &app_menu,
+                &file_menu,
+                &edit_menu,
+                &view_menu,
+                &window_menu,
+                &help_menu,
+            ])
+            .build()?;
+
+        #[cfg(not(target_os = "macos"))]
+        let menu = MenuBuilder::new(app)
+            .items(&[
+                &file_menu,
+                &edit_menu,
+                &view_menu,
+                &window_menu,
+                &help_menu,
+            ])
+            .build()?;
+
+        app.set_menu(menu)?;
+    } else {
+        // "in_app" mode: completely remove File, Edit, View from macOS status bar!
+        // No duplicate menus on the system status bar.
+        #[cfg(target_os = "macos")]
+        let menu = MenuBuilder::new(app)
+            .items(&[
+                &app_menu,
+                &window_menu,
+                &help_menu,
+            ])
+            .build()?;
+
+        #[cfg(not(target_os = "macos"))]
+        let menu = MenuBuilder::new(app)
+            .items(&[
+                &window_menu,
+                &help_menu,
+            ])
+            .build()?;
+
+        app.set_menu(menu)?;
+    }
 
     Ok(())
+}
+
+pub fn setup_menu(app: &mut App) -> tauri::Result<()> {
+    update_system_menu(app.handle(), "in_app")
 }

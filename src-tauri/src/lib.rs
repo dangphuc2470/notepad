@@ -949,6 +949,11 @@ fn get_window_count(app: tauri::AppHandle) -> usize {
         .count()
 }
 
+#[tauri::command]
+fn set_menubar_mode(app: tauri::AppHandle, mode: String) -> Result<(), String> {
+    menu::update_system_menu(&app, &mode).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -994,6 +999,7 @@ pub fn run() {
             get_window_count,
             get_accent_color,
             show_window_with_fade,
+            set_menubar_mode,
         ])
         .setup(|app| {
             menu::setup_menu(app)?;

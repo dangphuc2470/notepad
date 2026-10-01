@@ -64,9 +64,16 @@ function GhostTabPreview() {
 
 function App() {
   const isGhost = typeof window !== 'undefined' && window.location.search.includes('ghost=true');
+  const { menuBarLocation } = useSettingsStore();
   useKeyboardShortcuts();
   useNativeMenuEvents();
   useTheme();
+
+  useEffect(() => {
+    if (!isGhost) {
+      invoke('set_menubar_mode', { mode: menuBarLocation }).catch(console.error);
+    }
+  }, [menuBarLocation, isGhost]);
 
   if (isGhost) {
     return <GhostTabPreview />;
@@ -291,9 +298,9 @@ function App() {
   }, []);
 
   return (
-    <div className="app">
+    <div className={`app ${menuBarLocation === 'status_bar' ? 'menubar-status-bar' : ''}`}>
       <TabBar />
-      <MenuBar />
+      {menuBarLocation === 'in_app' && <MenuBar />}
       <FindReplace />
       <Editor />
       <StatusBar />
