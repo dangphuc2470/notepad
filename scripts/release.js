@@ -39,6 +39,9 @@ try {
     fs.writeFileSync(cargoTomlPath, cargoToml);
     console.log('✅ Updated Cargo.toml');
 
+    execSync('cargo check --manifest-path src-tauri/Cargo.toml', { cwd: rootDir, stdio: 'inherit' });
+    console.log('✅ Updated Cargo.lock');
+
     // 4. Update README.md download links
     const readmePath = path.join(rootDir, 'README.md');
     let readme = fs.readFileSync(readmePath, 'utf-8');
