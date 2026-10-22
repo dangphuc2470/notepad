@@ -55,12 +55,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tauriScript: npm run tauri
-          tagName: app-v__VERSION__
-          releaseName: "App v__VERSION__"
+          tagName: NotePad-v__VERSION__
+          releaseName: "NotePad v__VERSION__"
           releaseBody: |
             Download the installer for your platform:
             - **macOS (Apple Silicon)**: `.dmg` file (aarch64)
             - **macOS (Intel)**: `.dmg` file (x86_64)
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}

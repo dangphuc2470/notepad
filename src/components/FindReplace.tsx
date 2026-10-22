@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useEditorStore } from '../stores/editorStore';
-import { getNotepadView, notepadReplaceRange, notepadSelectRange, notepadSetText } from '../editor/notepadEditor';
+import {
+    getNotepadView,
+    notepadReplaceRange,
+    notepadSelectRange,
+    notepadSetText,
+    notepadSetSearchMatches,
+    notepadClearSearchMatches,
+} from '../editor/notepadEditor';
 import './FindReplace.css';
 
 function getDocText(fallback?: string): string {
@@ -9,7 +16,7 @@ function getDocText(fallback?: string): string {
     return editorView ? editorView.state.doc.toString() : fallback || '';
 }
 
-/** Decode find-box escapes (\\n, \\r, \\t, \\\\) then escape for RegExp. */
+/** Decode find-box escapes (\n, \r, \t, \\) then escape for RegExp. */
 function buildSearchPattern(searchTerm: string, wholeWord: boolean): string {
     let literal = '';
     for (let i = 0; i < searchTerm.length; i++) {
@@ -23,8 +30,21 @@ function buildSearchPattern(searchTerm: string, wholeWord: boolean): string {
             literal += searchTerm[i];
         }
     }
-    const pattern = literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return wholeWord ? `\\b${pattern}\\b` : pattern;
+    const escaped = literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (!wholeWord) return escaped;
+
+    const chars = Array.from(literal);
+    if (chars.length === 0) return escaped;
+
+    // Word characters across all human languages (letters, marks, digits, underscores)
+    const isWordChar = (char: string) => /[\p{L}\p{M}\p{N}_]/u.test(char);
+    const startsWithWord = isWordChar(chars[0]);
+    const endsWithWord = isWordChar(chars[chars.length - 1]);
+
+    const prefix = startsWithWord ? '(?<![\\p{L}\\p{M}\\p{N}_])' : '';
+    const suffix = endsWithWord ? '(?![\\p{L}\\p{M}\\p{N}_])' : '';
+
+    return `${prefix}${escaped}${suffix}`;
 }
 
 export const FindReplace: React.FC = () => {
@@ -73,24 +93,47 @@ export const FindReplace: React.FC = () => {
         if (!searchTerm) return [];
         const content = getDocText(activeTab?.content);
         if (!content) return [];
-        const flags = matchCase ? 'g' : 'gi';
-        const regex = new RegExp(buildSearchPattern(searchTerm, wholeWord), flags);
-        const matches: Array<{ index: number; length: number }> = [];
-        let match;
-        while ((match = regex.exec(content)) !== null) {
-            matches.push({ index: match.index, length: match[0].length });
-            if (match[0].length === 0) regex.lastIndex++;
+        try {
+            const flags = matchCase ? 'gu' : 'giu';
+            const regex = new RegExp(buildSearchPattern(searchTerm, wholeWord), flags);
+            const matches: Array<{ index: number; length: number }> = [];
+            let match;
+            while ((match = regex.exec(content)) !== null) {
+                matches.push({ index: match.index, length: match[0].length });
+                if (match[0].length === 0) regex.lastIndex++;
+            }
+            return matches;
+        } catch {
+            return [];
         }
-        return matches;
     }, [activeTab?.content, searchTerm, matchCase, wholeWord]);
 
     useEffect(() => {
+        if (!showFindReplace) {
+            notepadClearSearchMatches();
+            return;
+        }
         const positions = findMatches();
         setTotalMatches(positions.length);
-        if (currentMatch >= positions.length) {
-            setCurrentMatch(positions.length > 0 ? 0 : 0);
+        if (positions.length === 0) {
+            setCurrentMatch(0);
+            notepadClearSearchMatches();
+            return;
         }
-    }, [searchTerm, matchCase, wholeWord, activeTab?.content, findMatches]);
+
+        const editorView = getNotepadView();
+        const cursor = editorView ? editorView.state.selection.main.from : 0;
+
+        let targetIndex = positions.findIndex((p) => p.index >= cursor);
+        if (targetIndex === -1) {
+            targetIndex = 0;
+        }
+        setCurrentMatch(targetIndex);
+
+        const pos = positions[targetIndex];
+        notepadSelectRange(pos.index, pos.index + pos.length, false);
+        notepadSetSearchMatches(positions, targetIndex);
+    }, [searchTerm, matchCase, wholeWord, activeTab?.content, showFindReplace, findMatches]);
 
     const navigateMatch = (direction: 'next' | 'prev') => {
         const positions = findMatches();
@@ -103,8 +146,9 @@ export const FindReplace: React.FC = () => {
             newIndex = (currentMatch - 1 + positions.length) % positions.length;
         }
         setCurrentMatch(newIndex);
-        const pos = positions[newIndex].index;
-        notepadSelectRange(pos, pos + positions[newIndex].length, false);
+        const pos = positions[newIndex];
+        notepadSelectRange(pos.index, pos.index + pos.length, false);
+        notepadSetSearchMatches(positions, newIndex);
     };
 
     const handleReplace = () => {
@@ -112,7 +156,7 @@ export const FindReplace: React.FC = () => {
         const positions = findMatches();
         if (positions.length === 0) return;
 
-        const pos = positions[currentMatch];
+        const pos = positions[currentMatch] || positions[0];
         notepadReplaceRange(pos.index, pos.index + pos.length, replaceTerm);
         useEditorStore.getState().flushPendingContent();
     };
@@ -120,13 +164,18 @@ export const FindReplace: React.FC = () => {
     const handleReplaceAll = () => {
         if (totalMatches === 0) return;
         const content = getDocText(activeTab?.content);
-        const flags = matchCase ? 'g' : 'gi';
-        const regex = new RegExp(buildSearchPattern(searchTerm, wholeWord), flags);
-        notepadSetText(content.replace(regex, replaceTerm));
-        useEditorStore.getState().flushPendingContent();
+        try {
+            const flags = matchCase ? 'gu' : 'giu';
+            const regex = new RegExp(buildSearchPattern(searchTerm, wholeWord), flags);
+            notepadSetText(content.replace(regex, replaceTerm));
+            useEditorStore.getState().flushPendingContent();
+        } catch {
+            // ignore
+        }
     };
 
     const handleClose = () => {
+        notepadClearSearchMatches();
         closeFindReplace();
         getNotepadView()?.focus();
     };
@@ -155,6 +204,14 @@ export const FindReplace: React.FC = () => {
             e.preventDefault();
             e.stopPropagation();
             toggleMode();
+        } else if (e.altKey && (e.code === 'KeyC' || e.key.toLowerCase() === 'c')) {
+            e.preventDefault();
+            e.stopPropagation();
+            setMatchCase((prev) => !prev);
+        } else if (e.altKey && (e.code === 'KeyW' || e.key.toLowerCase() === 'w')) {
+            e.preventDefault();
+            e.stopPropagation();
+            setWholeWord((prev) => !prev);
         } else if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
@@ -192,14 +249,16 @@ export const FindReplace: React.FC = () => {
                     <button
                         className={`find-toggle ${matchCase ? 'active' : ''}`}
                         onClick={() => setMatchCase(!matchCase)}
-                        title="Match Case"
+                        title="Match Case (⌥C)"
+                        aria-label="Match Case"
                     >
                         Aa
                     </button>
                     <button
                         className={`find-toggle ${wholeWord ? 'active' : ''}`}
                         onClick={() => setWholeWord(!wholeWord)}
-                        title="Whole Word"
+                        title="Match Whole Word (⌥W)"
+                        aria-label="Match Whole Word"
                     >
                         W
                     </button>

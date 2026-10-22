@@ -5,7 +5,7 @@ import { history, historyKeymap, standardKeymap, insertNewline } from '@codemirr
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { saveTab } from '../hooks/useFileOperations';
-import { setNotepadView } from '../editor/notepadEditor';
+import { setNotepadView, searchHighlightField } from '../editor/notepadEditor';
 import './Editor.css';
 
 function insertTab(view: EditorView): boolean {
@@ -164,6 +164,7 @@ export const Editor: React.FC = () => {
                     return false;
                 },
             }),
+            searchHighlightField,
         ];
     }, [flushPendingContent]);
 

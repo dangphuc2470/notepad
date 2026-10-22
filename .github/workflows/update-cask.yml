@@ -66,7 +66,7 @@ jobs:
                         return;
                       }
 
-                      const version = release.tag_name.replace(/^app-v/, '');
+                      const version = release.tag_name.replace(/^(app|NotePad)-v/, '');
                       const intelAsset = release.assets.find(
                         (a) => a.name === `NotepadMac_${version}_x64.dmg` || a.name === `NotepadMac_${version}.dmg`
                       );

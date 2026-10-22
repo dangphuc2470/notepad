@@ -1,6 +1,52 @@
-import { EditorView } from '@codemirror/view';
+import { EditorView, Decoration, DecorationSet } from '@codemirror/view';
+import { StateField, StateEffect } from '@codemirror/state';
 import { undo, redo, selectAll, deleteCharForward } from '@codemirror/commands';
 import { invoke } from '@tauri-apps/api/core';
+
+export interface SearchMatch {
+    index: number;
+    length: number;
+}
+
+export const setSearchMatchesEffect = StateEffect.define<{
+    matches: SearchMatch[];
+    currentIndex: number;
+}>();
+
+export const clearSearchMatchesEffect = StateEffect.define<void>();
+
+export const searchHighlightField = StateField.define<DecorationSet>({
+    create() {
+        return Decoration.none;
+    },
+    update(decorations, tr) {
+        for (const effect of tr.effects) {
+            if (effect.is(setSearchMatchesEffect)) {
+                const { matches, currentIndex } = effect.value;
+                const decos = [];
+                const docLen = tr.state.doc.length;
+                for (let i = 0; i < matches.length; i++) {
+                    const m = matches[i];
+                    const from = Math.max(0, Math.min(m.index, docLen));
+                    const to = Math.max(0, Math.min(m.index + m.length, docLen));
+                    if (from < to) {
+                        decos.push(
+                            Decoration.mark({
+                                class: i === currentIndex ? 'cm-search-match cm-search-match-selected' : 'cm-search-match',
+                            }).range(from, to)
+                        );
+                    }
+                }
+                return Decoration.set(decos, true);
+            }
+            if (effect.is(clearSearchMatchesEffect)) {
+                return Decoration.none;
+            }
+        }
+        return decorations.map(tr.changes);
+    },
+    provide: (field) => EditorView.decorations.from(field),
+});
 
 let view: EditorView | null = null;
 
@@ -130,3 +176,18 @@ export function notepadIsEditorTarget(el: EventTarget | null): boolean {
     if (!el || !(el instanceof Element)) return false;
     return !!el.closest('.cm-editor');
 }
+
+export function notepadSetSearchMatches(matches: SearchMatch[], currentIndex: number) {
+    if (!view) return;
+    view.dispatch({
+        effects: setSearchMatchesEffect.of({ matches, currentIndex }),
+    });
+}
+
+export function notepadClearSearchMatches() {
+    if (!view) return;
+    view.dispatch({
+        effects: clearSearchMatchesEffect.of(),
+    });
+}
+

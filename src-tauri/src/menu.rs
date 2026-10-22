@@ -96,12 +96,24 @@ pub fn update_system_menu(app: &AppHandle, mode: &str) -> tauri::Result<()> {
 
         app.set_menu(menu)?;
     } else {
-        // "in_app" mode: completely remove File, Edit, View from macOS status bar!
-        // No duplicate menus on the system status bar.
+        // "in_app" mode: File and View are handled inside the window.
+        // On macOS, an Edit menu with standard actions (Cut, Copy, Paste, Select All, Undo, Redo)
+        // is strictly REQUIRED by AppKit / WebKit for Cmd+C, Cmd+V, Cmd+X, Cmd+A shortcuts to work.
+        let edit_menu = SubmenuBuilder::new(app, "Edit")
+            .undo()
+            .redo()
+            .separator()
+            .cut()
+            .copy()
+            .paste()
+            .select_all()
+            .build()?;
+
         #[cfg(target_os = "macos")]
         let menu = MenuBuilder::new(app)
             .items(&[
                 &app_menu,
+                &edit_menu,
                 &window_menu,
                 &help_menu,
             ])
@@ -110,6 +122,7 @@ pub fn update_system_menu(app: &AppHandle, mode: &str) -> tauri::Result<()> {
         #[cfg(not(target_os = "macos"))]
         let menu = MenuBuilder::new(app)
             .items(&[
+                &edit_menu,
                 &window_menu,
                 &help_menu,
             ])
