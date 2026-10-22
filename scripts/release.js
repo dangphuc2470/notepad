@@ -46,7 +46,7 @@ try {
     const readmePath = path.join(rootDir, 'README.md');
     let readme = fs.readFileSync(readmePath, 'utf-8');
     // Handle replacing older download links with new NotePad-v tag links
-    readme = readme.replace(/(download\/(?:app|NotePad)-v)[^\/]+(\/Notepad(?:Mac)?_)[a-zA-Z0-9\.-]+(\.dmg)/g, (match, p1, p2, p3) => {
+    readme = readme.replace(/(download\/(?:app|NotePad)-v)[^\/]+(\/Notepad(?:Mac)?_)[a-zA-Z0-9._-]+(\.dmg)/g, (match, p1, p2, p3) => {
         if (match.includes('_aarch64')) return `download/NotePad-v${version}${p2}${version}_aarch64${p3}`;
         if (match.includes('_x64')) return `download/NotePad-v${version}${p2}${version}_x64${p3}`;
         return `download/NotePad-v${version}${p2}${version}_x64${p3}`;
